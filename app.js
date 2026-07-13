@@ -55,10 +55,10 @@ function cardHTML(id, {mode="hidden", extraClass=""}={}){
 function backFaceHTML(){
   return `<div class="cardback"><img src="assets/card-back.png" alt="" onerror="this.remove()"><span class="cb-motif">⏳</span></div>`;
 }
-// carte-cible avec animation de flip 3D (dos -> face) au montage
+// carte-cible avec animation de flip 3D (dos -> face) + éclat lumineux
 function flipCardHTML(id, opts){
   return `<div class="flip"><div class="flip-inner">
-    <div class="flip-face flip-front">${cardHTML(id, opts)}</div>
+    <div class="flip-face flip-front">${cardHTML(id, opts)}<img class="flip-gleam" src="assets/gleam.png" alt="" onerror="this.remove()"></div>
     <div class="flip-face flip-back">${backFaceHTML()}</div>
   </div></div>`;
 }
@@ -107,17 +107,28 @@ function sbRowHTML(i, rk){
 
 /* ============================== ÉCRANS =================================== */
 
+function renderSplash(){
+  app.innerHTML = `
+  <div class="splash">
+    <div class="brand splash-top">
+      <span class="big">ChronoCartes</span>
+      <span class="sub">place l'histoire dans le temps</span>
+    </div>
+    <div class="splash-bottom">
+      <button class="btn" id="play">Jouer</button>
+      <div class="hint center" style="color:#e9dcc0;margin-top:10px">${ALL_IDS.length} événements · 1 à 8 joueurs · sur un seul appareil</div>
+    </div>
+  </div>`;
+  app.querySelector("#play").onclick = () => renderSetup();
+}
+
 function renderSetup(){
   const c = S ? S.config : {...CFG_DEFAULT};
   if(!c.names.length) c.names = defaultNames(c.nbPlayers);
   app.innerHTML = `
   <div class="brand" style="margin:2px 0 12px">
     <div class="fan" aria-hidden="true">
-      <span class="fan-card" style="--i:-2">🏛️</span>
-      <span class="fan-card" style="--i:-1">🧭</span>
-      <span class="fan-card" style="--i:0">🕰️</span>
-      <span class="fan-card" style="--i:1">🔬</span>
-      <span class="fan-card" style="--i:2">🎭</span>
+      <span class="fan-card"></span><span class="fan-card"></span><span class="fan-card"></span><span class="fan-card"></span><span class="fan-card"></span>
     </div>
     <span class="big">ChronoCartes</span>
     <span class="sub">place l'histoire dans le temps</span>
@@ -433,7 +444,7 @@ async function boot(){
     const data=await res.json();
     data.evenements.forEach(e=>{ EVENTS[e.id]=e; });
     ALL_IDS=data.evenements.map(e=>e.id);
-    renderSetup();
+    renderSplash();
   }catch(err){
     app.innerHTML=`<div class="loading">Erreur de chargement des événements.<br>${esc(err.message)}</div>`;
     console.error(err);
