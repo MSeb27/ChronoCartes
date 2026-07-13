@@ -1,0 +1,30 @@
+# Dépendances
+node_modules/
+package-lock.json.bak
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environnement / secrets
+.env
+.env.local
+
+# Fichiers OS / éditeur
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# Build / cache
+dist/
+build/
+.cache/
+
+# Fichiers Claude locaux
+.claude/settings.local.json
+
+# Images sources lourdes / brouillons de génération (à décommenter si besoin)
+# assets/raw/
+# *.psd
