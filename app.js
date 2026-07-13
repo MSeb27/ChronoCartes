@@ -25,6 +25,12 @@ const CFG_DEFAULT = { nbPlayers:2, names:[], handSize:6, scoreMode:"mixte", roun
 function fmtYear(y){ return y < 0 ? `${-y} av. J.-C.` : `${y}`; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+// bascule une <img> vers la source suivante (data-srcs="a|b|c") ; retire l'img si épuisé
+function cardImgError(img){
+  const list=(img.dataset.srcs||"").split("|").filter(Boolean);
+  const i=(parseInt(img.dataset.i||"0",10))+1;
+  if(i<list.length){ img.dataset.i=String(i); img.src=list[i]; } else { img.remove(); }
+}
 let toastTimer=null;
 function toast(msg){
   const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
@@ -38,11 +44,11 @@ function cardHTML(id, {mode="hidden", extraClass=""}={}){
   const frame = `var(--t-${e.theme})`;
   const yearCls = mode==="reveal" ? "" : "hidden";
   const yearTxt = mode==="reveal" ? fmtYear(e.year) : "";
-  // illustration : essaie assets/cards/<id>.png, puis assets/<id>.png, sinon placeholder (glyphe)
+  // illustration : essaie assets/cards/<id>.webp, puis .png, puis assets/<id>.png, sinon placeholder
   const glyph = `<span class="glyph">${THEME_ICON[e.theme]||"🕰️"}</span>`;
-  const art = e.image
-    ? glyph + `<img src="${esc(e.image)}" alt="" onerror="this.remove()">`
-    : glyph + `<img src="assets/cards/${id}.png" alt="" onerror="if(this.dataset.f){this.remove()}else{this.dataset.f='1';this.src='assets/${id}.png'}">`;
+  const srcs = e.image ? [e.image]
+    : [`assets/cards/${id}.webp`, `assets/cards/${id}.png`, `assets/${id}.png`];
+  const art = glyph + `<img src="${esc(srcs[0])}" data-srcs="${esc(srcs.join("|"))}" data-i="0" alt="" onerror="cardImgError(this)">`;
   return `<div class="card ${extraClass}" style="--frame:${frame}" data-id="${id}">
     <div class="year ${yearCls}">${yearTxt}</div>
     <span class="theme">${THEME_ICON[e.theme]||""}</span>

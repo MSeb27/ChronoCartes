@@ -25,6 +25,7 @@ build/
 # Fichiers Claude locaux
 .claude/settings.local.json
 
-# Images sources lourdes / brouillons de génération (à décommenter si besoin)
-# assets/raw/
+# Images sources lourdes (non versionnées) : originaux avant optimisation + stash
+assets/_originals/
+assets/_src/
 # *.psd
