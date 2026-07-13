@@ -51,6 +51,18 @@ function cardHTML(id, {mode="hidden", extraClass=""}={}){
   </div>`;
 }
 
+// dos de carte (image assets/card-back.png si présente, sinon motif CSS)
+function backFaceHTML(){
+  return `<div class="cardback"><img src="assets/card-back.png" alt="" onerror="this.remove()"><span class="cb-motif">⏳</span></div>`;
+}
+// carte-cible avec animation de flip 3D (dos -> face) au montage
+function flipCardHTML(id, opts){
+  return `<div class="flip"><div class="flip-inner">
+    <div class="flip-face flip-front">${cardHTML(id, opts)}</div>
+    <div class="flip-face flip-back">${backFaceHTML()}</div>
+  </div></div>`;
+}
+
 /* ------------------------- Résolution d'une manche ----------------------- */
 // plays: [{player, id}] ; renvoie {scored[], winners[]}
 function resolveRound(targetYear, plays){
@@ -299,6 +311,8 @@ function renderPass(){
 function renderPlay(){
   const p=S.round.current, name=S.config.names[p];
   const hand=S.hands[p];
+  const flip = !S.round.targetShown;   // flip seulement au 1er affichage de la manche
+  S.round.targetShown = true;
   app.innerHTML=`<div class="table">
     ${roundBarHTML()}
     <div class="board">
@@ -308,7 +322,7 @@ function renderPlay(){
       </div>
       <div class="target-wrap">
         <span class="lbl">Carte-cible</span>
-        <div class="target">${cardHTML(S.round.target,{mode:"hidden"})}</div>
+        <div class="target">${flip ? flipCardHTML(S.round.target,{mode:"hidden"}) : cardHTML(S.round.target,{mode:"hidden"})}</div>
       </div>
     </div>
     <div class="handzone">
