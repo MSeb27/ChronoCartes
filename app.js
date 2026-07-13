@@ -38,9 +38,10 @@ function cardHTML(id, {mode="hidden", extraClass=""}={}){
   const frame = `var(--t-${e.theme})`;
   const yearCls = mode==="reveal" ? "" : "hidden";
   const yearTxt = mode==="reveal" ? fmtYear(e.year) : "";
-  const art = e.image
-    ? `<img src="${esc(e.image)}" alt="">`
-    : `<span class="glyph">${THEME_ICON[e.theme]||"🕰️"}</span>`;
+  // illustration : utilise assets/cards/<id>.png si présent, sinon placeholder (glyphe)
+  const imgSrc = e.image || `assets/cards/${id}.png`;
+  const art = `<span class="glyph">${THEME_ICON[e.theme]||"🕰️"}</span>`
+            + `<img src="${esc(imgSrc)}" alt="" onerror="this.remove()">`;
   return `<div class="card ${extraClass}" style="--frame:${frame}" data-id="${id}">
     <div class="year ${yearCls}">${yearTxt}</div>
     <span class="theme">${THEME_ICON[e.theme]||""}</span>
