@@ -1,0 +1,13 @@
+{
+  "name": "ChronoCartes",
+  "short_name": "ChronoCartes",
+  "description": "Jeu de cartes chronologique : place l'événement le plus proche dans le temps.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2c1e12",
+  "theme_color": "#2c1e12",
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
