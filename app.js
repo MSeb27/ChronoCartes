@@ -11,11 +11,15 @@ const THEME_ICON = {
 let EVENTS = {};      // id -> event
 let ALL_IDS = [];
 
+// couleurs par joueur (pastilles, avatars)
+const PLAYER_COLORS = ["#c0532b","#2e6d8a","#2f7d5c","#a9812f","#6b4a8a","#9b3b2f","#3f7d7d","#7a5a2e"];
+const pColor = i => PLAYER_COLORS[i % PLAYER_COLORS.length];
+
 /* --------------------------------- État ---------------------------------- */
 const app = document.getElementById("app");
 let S = null;         // état de partie courant
 
-const CFG_DEFAULT = { nbPlayers:2, names:[], handSize:5, scoreMode:"mixte", rounds:8 };
+const CFG_DEFAULT = { nbPlayers:2, names:[], handSize:6, scoreMode:"mixte", rounds:8 };
 
 /* ------------------------------- Utilitaires ----------------------------- */
 function fmtYear(y){ return y < 0 ? `${-y} av. J.-C.` : `${y}`; }
@@ -41,7 +45,7 @@ function cardHTML(id, {mode="hidden", extraClass=""}={}){
     <div class="year ${yearCls}">${yearTxt}</div>
     <span class="theme">${THEME_ICON[e.theme]||""}</span>
     <div class="art">${art}</div>
-    <div class="title">${esc(e.titre)}<span class="era">${esc(e.epoque)}</span></div>
+    <div class="title">${esc(e.titre)}</div>
     <div class="inner-frame"></div>
   </div>`;
 }
@@ -79,6 +83,14 @@ function scoreLabel(i){
   if(mode==="precision")  return `${S.malus[i]} ans`;
   return `${S.cards[i].length} 🃏 · ${S.malus[i]} ans`;
 }
+function sbRowHTML(i, rk){
+  return `<div class="sb-row">
+    <span class="rank">${rk+1}</span>
+    <span class="dot" style="background:${pColor(i)}"></span>
+    <span class="nm">${esc(S.config.names[i])}</span>
+    <span class="sc">${scoreLabel(i)}</span>
+  </div>`;
+}
 
 /* ============================== ÉCRANS =================================== */
 
@@ -86,7 +98,14 @@ function renderSetup(){
   const c = S ? S.config : {...CFG_DEFAULT};
   if(!c.names.length) c.names = defaultNames(c.nbPlayers);
   app.innerHTML = `
-  <div class="brand" style="margin:8px 0 14px">
+  <div class="brand" style="margin:2px 0 12px">
+    <div class="fan" aria-hidden="true">
+      <span class="fan-card" style="--i:-2">🏛️</span>
+      <span class="fan-card" style="--i:-1">🧭</span>
+      <span class="fan-card" style="--i:0">🕰️</span>
+      <span class="fan-card" style="--i:1">🔬</span>
+      <span class="fan-card" style="--i:2">🎭</span>
+    </div>
     <span class="big">ChronoCartes</span>
     <span class="sub">place l'histoire dans le temps</span>
   </div>
@@ -266,9 +285,9 @@ function renderPass(){
   app.innerHTML=`<div class="table">
     ${roundBarHTML()}
     <div class="pass">
-      <div class="avatar">🕰️</div>
+      <div class="avatar" style="--pc:${pColor(p)}">${esc((name.trim()[0]||"?").toUpperCase())}</div>
       <div>À toi de jouer,</div>
-      <div class="who">${esc(name)}</div>
+      <div class="who" style="color:${pColor(p)}">${esc(name)}</div>
       <div class="instr">Prends l'appareil (que les autres ne regardent pas 🙈), puis dévoile ta main.</div>
       <button class="btn" id="ready">Voir ma main</button>
     </div>
@@ -321,10 +340,10 @@ function renderReveal(){
     const isSplit = res.split && res.winners.some(w=>w.player===s.player);
     const medal = isWin?"🥇":(isSplit?"🤝":"");
     const sideTxt = s.year===res.targetYear?"pile dessus":(s.before?"avant":"après");
-    return `<div class="res-row ${isWin||isSplit?'winner':''}">
+    return `<div class="res-row ${isWin||isSplit?'winner':''}" style="animation-delay:${rankIdx*90}ms">
       <div class="mini">${cardHTML(s.id,{mode:"reveal"})}</div>
       <div class="info">
-        <div class="pname">${esc(S.config.names[s.player])} <span class="medal">${medal}</span></div>
+        <div class="pname"><span class="dot" style="background:${pColor(s.player)}"></span>${esc(S.config.names[s.player])} <span class="medal">${medal}</span></div>
         <div class="ptitle">${esc(EVENTS[s.id].titre)} — ${fmtYear(s.year)}</div>
       </div>
       <div class="gap">${s.gap}<small>${sideTxt}</small></div>
@@ -354,11 +373,7 @@ function renderReveal(){
       <div class="scoreboard">
         <div class="sb-title">Classement</div>
         <div class="sb-list">
-          ${order.map((i,rk)=>`<div class="sb-row">
-            <span class="rank">${rk+1}.</span>
-            <span class="nm">${esc(S.config.names[i])}</span>
-            <span class="sc">${scoreLabel(i)}</span>
-          </div>`).join("")}
+          ${order.map((i,rk)=>sbRowHTML(i,rk)).join("")}
         </div>
       </div>
       <div class="footer-actions">
@@ -382,11 +397,7 @@ function renderGameOver(){
       <div class="scoreboard" style="width:100%;max-width:420px">
         <div class="sb-title">Classement final</div>
         <div class="sb-list" style="max-height:42dvh">
-          ${order.map((i,rk)=>`<div class="sb-row">
-            <span class="rank">${rk+1}.</span>
-            <span class="nm">${esc(S.config.names[i])}</span>
-            <span class="sc">${scoreLabel(i)}</span>
-          </div>`).join("")}
+          ${order.map((i,rk)=>sbRowHTML(i,rk)).join("")}
         </div>
       </div>
       <div class="btn-row" style="width:100%;max-width:420px">
