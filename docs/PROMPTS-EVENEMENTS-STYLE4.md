@@ -7,7 +7,7 @@ Style **croquis graphite + couleur sélective** (ton choix), un prompt prêt à 
 ## Méthode
 1. **Verrouille le style d'abord** : génère 2-3 cartes (ex. Montgolfière, Révolution, Lune), choisis LA meilleure, récupère son `--sref`.
 2. Ajoute ce **même `--sref`** à toutes les autres → paquet homogène.
-3. **Nommage** : enregistre chaque image sous `assets/cards/<id>.png` (l'`id` est donné à chaque carte). Je les câble ensuite automatiquement dans le jeu.
+3. **Nommage** : enregistre chaque image sous **`<id>.png`** (l'`id` est donné à chaque carte). Dépose-la dans `assets/cards/` **ou directement dans `assets/`** — le jeu regarde les deux emplacements et l'affiche automatiquement.
 4. Params Midjourney indiqués (`--ar 2:3 --style raw`) ; retire-les pour SDXL/DALL·E.
 
 > Tu peux changer la couleur d'accent si tu préfères (ex. tout en bleu pour une charte unifiée) — remplace juste la teinte dans « rendered in vivid colour ».
