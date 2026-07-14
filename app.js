@@ -36,21 +36,23 @@ function attachCardTooltip(){
   let lastT=0, lastCard=null;
   app.addEventListener("click", e=>{
     const card=e.target.closest(".card[data-title]"); if(!card) return;
-    if(card===lastCard && e.timeStamp-lastT<400){       // 2e tap rapproché
-      if(card.classList.contains("is-target")) showCardZoom(card.dataset.id, "hidden");
-      else if(card.closest(".mini")) showCardZoom(card.dataset.id, "reveal"); // vignette de résultat (année visible)
-      else toast(card.dataset.title);                                         // carte de main
+    if(card===lastCard && e.timeStamp-lastT<400){       // 2e tap rapproché => agrandir la carte
+      showCardZoom(card.dataset.id, card.closest(".mini") ? "reveal" : "hidden");
       lastT=0; lastCard=null;
     }else{                                               // 1er tap => on mémorise (sélection gérée ailleurs)
       lastT=e.timeStamp; lastCard=card;
     }
   });
 }
-// agrandissement plein écran d'une carte ; touch/clic pour fermer
+// agrandissement plein écran d'une carte + titre en bas ; touch/clic pour fermer
 function showCardZoom(id, mode="hidden"){
   const ov=document.createElement("div");
   ov.className="card-zoom";
-  ov.innerHTML=`<div class="card-zoom-inner">${cardHTML(id,{mode})}</div><div class="card-zoom-hint">Touchez pour fermer</div>`;
+  ov.innerHTML=`<div class="card-zoom-box">
+      <div class="card-zoom-inner">${cardHTML(id,{mode})}</div>
+      <div class="card-zoom-title">${esc(EVENTS[id].titre)}</div>
+    </div>
+    <div class="card-zoom-hint">Touchez pour fermer</div>`;
   ov.addEventListener("click", ()=>ov.remove());
   document.body.appendChild(ov);
 }

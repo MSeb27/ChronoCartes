@@ -311,10 +311,14 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 .card-zoom{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
   padding:20px;background:rgba(8,5,2,.85);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
   animation:zoomIn .18s ease both;cursor:pointer}
-.card-zoom-inner{width:min(86vw,53vh);aspect-ratio:2/3;
+.card-zoom-box{display:flex;flex-direction:column;align-items:center;gap:12px;max-width:100%;
   animation:zoomPop .26s cubic-bezier(.2,.7,.3,1.25) both}
+.card-zoom-inner{width:min(84vw,46vh);aspect-ratio:2/3}
 .card-zoom-inner .card{width:100%;height:100%}
-.card-zoom-hint{position:absolute;bottom:calc(24px + var(--safe-b));left:0;right:0;text-align:center;
-  color:var(--parch-1);font-size:13px;letter-spacing:1px;opacity:.75}
+.card-zoom .card .title{display:none}       /* le titre est affiché en légende dessous */
+.card-zoom-title{font-family:var(--serif);color:var(--parch-1);font-weight:800;text-align:center;
+  font-size:clamp(18px,5vw,24px);line-height:1.2;max-width:84vw;text-shadow:0 2px 6px rgba(0,0,0,.7)}
+.card-zoom-hint{position:absolute;bottom:calc(20px + var(--safe-b));left:0;right:0;text-align:center;
+  color:var(--parch-1);font-size:13px;letter-spacing:1px;opacity:.7}
 @keyframes zoomIn{from{opacity:0}to{opacity:1}}
 @keyframes zoomPop{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:scale(1)}}
