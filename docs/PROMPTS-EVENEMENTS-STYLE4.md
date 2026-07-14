@@ -54,7 +54,7 @@ Fine draughtsmanship, single colour accent. No text, no numbers, no signature. -
 ### 753 av. J.-C. — Fondation de Rome  ·  `rome_fondation.png`
 ```
 Detailed graphite pencil sketch on cream paper, meticulous greyscale hatching, with selective spot color — ONLY the she-wolf's fur in warm russet rendered in vivid colour while everything else stays pencil-grey:
-the she-wolf suckling the infants Romulus and Remus on the banks of the Tiber, a nascent city.
+the legendary she-wolf of Rome standing protectively over two small swaddled children on the banks of the Tiber, the seven hills and a nascent city behind, dawn light.
 Fine draughtsmanship, single colour accent. No text, no numbers, no signature. --ar 2:3 --style raw
 ```
 
@@ -88,8 +88,8 @@ Fine draughtsmanship, single colour accent. No text, no numbers, no signature. -
 
 ### 44 av. J.-C. — Assassinat de Jules César  ·  `cesar.png`
 ```
-Detailed graphite pencil sketch on cream paper, meticulous greyscale hatching, with selective spot color — ONLY the blood-red stains on Caesar's toga rendered in vivid colour while everything else stays pencil-grey:
-Julius Caesar stabbed by senators in the Roman Senate, white togas, the Ides of March.
+Detailed graphite pencil sketch on cream paper, meticulous greyscale hatching, with selective spot color — ONLY Caesar's toga in imperial purple rendered in vivid colour while everything else stays pencil-grey:
+Julius Caesar standing at the centre of the Roman Senate, encircled by a crowd of stern senators closing in on him, long dramatic shadows, marble columns and statues, a tense and foreboding atmosphere on the Ides of March.
 Fine draughtsmanship, single colour accent. No text, no numbers, no signature. --ar 2:3 --style raw
 ```
 
