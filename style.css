@@ -378,6 +378,7 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 .dec-note{text-align:center;color:var(--parch-1);font-weight:700;font-size:13px}
 .dec-tag{background:#2e6d8a;color:#fff;border-radius:6px;padding:0 5px;font-size:11px;font-weight:800}
 .dbl-tag{background:var(--accent);color:#fff;border-radius:6px;padding:0 5px;font-size:11px;font-weight:800}
+.pts-tag{background:var(--ok);color:#fff;border-radius:6px;padding:0 6px;font-size:12px;font-weight:800;font-family:var(--serif)}
 .swap-lbl{color:var(--parch-1);font-weight:700;text-align:center;margin-bottom:8px;font-family:var(--serif);font-size:15px}
 
 /* agrandissement de carte (double-tap sur la carte-cible) */

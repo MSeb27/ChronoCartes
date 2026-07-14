@@ -91,8 +91,14 @@ const isSpecial = id => Object.prototype.hasOwnProperty.call(SPECIALS, id);
 const app = document.getElementById("app");
 let S = null;         // état de partie courant
 
-const CFG_DEFAULT = { nbPlayers:2, names:[], avatars:[], handSize:6, scoreMode:"mixte", rounds:8, specials:true };
+const CFG_DEFAULT = { nbPlayers:2, names:[], avatars:[], handSize:6, scoreMode:"points", rounds:8, specials:true };
 const NB_SPECIALS = 8;  // 2 de chaque effet mélangées au talon
+
+// mode "points" : points gagnés selon le classement de la manche (meilleur d'abord)
+const RANK_POINTS = {
+  2:[3,1], 3:[5,3,1], 4:[7,5,3,1], 5:[10,7,5,3,1],
+  6:[12,10,7,5,3,1], 7:[15,12,10,7,5,3,1], 8:[20,15,12,10,7,5,3,1]
+};
 
 /* ------------------------------- Utilitaires ----------------------------- */
 function fmtYear(y){ return y < 0 ? `${-y} av. J.-C.` : `${y}`; }
@@ -187,20 +193,19 @@ function resolveRound(targetYear, plays){
 /* -------------------------- Classement (standings) ----------------------- */
 function standings(){
   const idx = S.config.names.map((_,i)=>i);
-  const mode = S.config.scoreMode;
+  const mode = S.config.nbPlayers===1 ? "precision" : S.config.scoreMode;  // solo = précision
   idx.sort((a,b)=>{
-    if(mode==="collection") return S.cards[b].length - S.cards[a].length;
-    if(mode==="precision")  return S.malus[a] - S.malus[b];
-    // mixte : cartes desc, puis malus asc
-    return (S.cards[b].length - S.cards[a].length) || (S.malus[a] - S.malus[b]);
+    if(mode==="carte")     return S.cards[b].length - S.cards[a].length;
+    if(mode==="precision") return S.malus[a] - S.malus[b];
+    return S.points[b] - S.points[a];   // points : plus grand total gagne
   });
   return idx;
 }
 function scoreLabel(i){
-  const mode=S.config.scoreMode;
-  if(mode==="collection") return `${S.cards[i].length} 🃏`;
-  if(mode==="precision")  return `${S.malus[i]} ans`;
-  return `${S.cards[i].length} 🃏 · ${S.malus[i]} ans`;
+  const mode = S.config.nbPlayers===1 ? "precision" : S.config.scoreMode;
+  if(mode==="carte")     return `${S.cards[i].length} 🃏`;
+  if(mode==="precision") return `${S.malus[i]} ans`;
+  return `${S.points[i]} pts`;
 }
 function sbRowHTML(i, rk){
   return `<div class="sb-row">
@@ -276,9 +281,9 @@ function renderSetup(){
       <div class="field">
         <label>Décompte des points</label>
         <div class="seg" id="modeSeg">
-          <button data-m="collection" class="${c.scoreMode==='collection'?'on':''}">Collection</button>
+          <button data-m="carte" class="${c.scoreMode==='carte'?'on':''}">Carte</button>
           <button data-m="precision" class="${c.scoreMode==='precision'?'on':''}">Précision</button>
-          <button data-m="mixte" class="${c.scoreMode==='mixte'?'on':''}">Mixte</button>
+          <button data-m="points" class="${c.scoreMode==='points'?'on':''}">Points</button>
         </div>
         <div class="hint" id="modeHint"></div>
       </div>
@@ -331,9 +336,9 @@ function renderSetup(){
     box.querySelectorAll(".pl-avatar").forEach(btn=>btn.onclick=()=>openAvatarPicker(+btn.dataset.pi));
   }
   function updateModeHint(){
-    const h={collection:"Le gagnant de la manche remporte la carte-cible. Score = nb de cartes.",
-             precision:"Chaque joueur cumule un malus égal à son écart d'années. Le plus petit total gagne.",
-             mixte:"Le gagnant prend la carte ; le malus cumulé départage les ex æquo."}[c.scoreMode];
+    const h={carte:"Le gagnant de la manche remporte la carte-cible. Score = nombre de cartes.",
+             precision:"Chaque joueur cumule un malus = son écart d'années. Le plus petit total gagne.",
+             points:"Chaque manche, des points selon le classement (1er = le plus). Le plus grand total gagne."}[c.scoreMode];
     document.getElementById("modeHint").textContent=h;
   }
 }
@@ -355,8 +360,9 @@ function startGame(){
   }
   S = {
     config:c, deck, hands, discard:[],
-    cards:c.names.map(()=>[]),   // cartes remportées (collection)
-    malus:c.names.map(()=>0),    // malus cumulé (précision)
+    cards:c.names.map(()=>[]),   // cartes remportées (mode carte)
+    malus:c.names.map(()=>0),    // malus cumulé (mode précision)
+    points:c.names.map(()=>0),   // points cumulés (mode points)
     roundNo:0,
     phase:null, round:null
   };
@@ -412,12 +418,24 @@ function resolveAndShow(){
   const targetYear=EVENTS[r.target].year;
   const plays=r.plays.map((id,player)=>({player,id}));
   const {scored,winners}=resolveRound(targetYear,plays);
-  // maj scores (malus ×2 si Double activé par ce joueur)
-  scored.forEach(s=>{ S.malus[s.player]+= s.gap * (r.dbl[s.player]?2:1); });
+  const dbl = p => r.dbl[p] ? 2 : 1;   // Double : ×2 pour ce joueur
+  // malus (mode précision)
+  scored.forEach(s=>{ S.malus[s.player]+= s.gap * dbl(s.player); });
+  // carte remportée (mode carte)
   let awarded=null;
-  if(winners.length===1 && S.config.scoreMode!=="precision"){
+  if(winners.length===1){
     awarded=winners[0].player; S.cards[awarded].push(r.target);
     if(r.dbl[awarded]) S.cards[awarded].push(r.target);   // gain ×2 (Double)
+  }
+  // points par rang (mode points) — scored est trié du meilleur au pire ; ex æquo = même rang
+  const table = RANK_POINTS[S.config.nbPlayers];
+  if(table){
+    let pos=0;
+    scored.forEach((s,k)=>{
+      if(k>0 && !(s.gap===scored[k-1].gap && s.before===scored[k-1].before)) pos=k;
+      const pts=(table[pos]||1)*dbl(s.player);
+      S.points[s.player]+=pts; s.pts=pts;
+    });
   }
   r.result={scored,winners,targetYear,awarded,split:winners.length>1};
   // repioche pour revenir à handSize (si possible)
@@ -577,6 +595,7 @@ function renderSwap(p){
 
 function renderReveal(){
   const r=S.round, res=r.result;
+  const mode = S.config.nbPlayers===1 ? "precision" : S.config.scoreMode;
   // rangée de résultats triée comme le tri de résolution (meilleur en haut)
   const rows=res.scored.map((s,rankIdx)=>{
     const isWin = res.winners.some(w=>w.player===s.player) && !res.split;
@@ -585,10 +604,11 @@ function renderReveal(){
     const sideTxt = s.eff===res.targetYear?"pile dessus":(s.before?"avant":"après");
     const decTag = s.dec?` <span class="dec-tag">${s.dec>0?'+':''}${s.dec}</span>`:'';
     const dblTag = r.dbl[s.player]?` <span class="dbl-tag">✖️2</span>`:'';
+    const ptsTag = (mode==="points" && s.pts!=null)?` <span class="pts-tag">+${s.pts}</span>`:'';
     return `<div class="res-row ${isWin||isSplit?'winner':''}" style="animation-delay:${rankIdx*90}ms">
       <div class="mini">${cardHTML(s.id,{mode:"reveal"})}</div>
       <div class="info">
-        <div class="pname">${avatarDotHTML(s.player)}${esc(S.config.names[s.player])} <span class="medal">${medal}</span>${dblTag}</div>
+        <div class="pname">${avatarDotHTML(s.player)}${esc(S.config.names[s.player])} <span class="medal">${medal}</span>${dblTag}${ptsTag}</div>
         <div class="ptitle">${esc(EVENTS[s.id].titre)} — ${fmtYear(s.year)}${decTag}</div>
         <a class="wiki-link" href="${wikiUrl(s.id)}" target="_blank" rel="noopener noreferrer">📖 Wikipédia</a>
       </div>
@@ -598,12 +618,12 @@ function renderReveal(){
 
   let verdict;
   if(res.split){
-    verdict=`Égalité entre ${res.winners.map(w=>esc(S.config.names[w.player])).join(" & ")} — carte non attribuée.`;
+    verdict=`Égalité entre ${res.winners.map(w=>esc(S.config.names[w.player])).join(" & ")}.`;
   }else{
-    const w=res.winners[0];
-    verdict = S.config.scoreMode==="precision"
-      ? `${esc(S.config.names[w.player])} est au plus près (${w.gap} ans).`
-      : `${esc(S.config.names[w.player])} remporte la carte&nbsp;!`;
+    const w=res.winners[0], ws=res.scored.find(s=>s.player===w.player);
+    verdict = mode==="carte"     ? `${esc(S.config.names[w.player])} remporte la carte&nbsp;!`
+            : mode==="precision" ? `${esc(S.config.names[w.player])} est au plus près (${w.gap} ans).`
+            :                      `${esc(S.config.names[w.player])} remporte la manche (+${(ws&&ws.pts)||0} pts)&nbsp;!`;
   }
 
   const order=standings();
