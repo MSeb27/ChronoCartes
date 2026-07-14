@@ -85,32 +85,22 @@ function wikiUrl(id){
   return "https://fr.wikipedia.org/w/index.php?go=Go&search=" + encodeURIComponent(t);
 }
 
-// ---------------------------- Cartes spéciales ----------------------------
-const SPECIALS = {
-  sp_voyance:  { nom:"Voyance",  icon:"👁️", desc:"Regarde en secret l'année de la carte-cible." },
-  sp_decalage: { nom:"Décalage", icon:"⏳", desc:"Ta carte comptera +10 ou −10 ans (à toi de choisir)." },
-  sp_echange:  { nom:"Échange",  icon:"🔄", desc:"Échange une carte de ta main contre le dessus du talon." },
-  sp_double:   { nom:"Double",   icon:"✖️", desc:"Cette manche compte double pour toi (gain ×2 ou malus ×2)." }
-};
-const SPECIAL_IDS = Object.keys(SPECIALS);
-const isSpecial = id => Object.prototype.hasOwnProperty.call(SPECIALS, id);
+// ---------------------------- Moteur de jeu -------------------------------
+// Toute la logique de partie vit dans engine.js (partagé navigateur + serveur).
+// On récupère ici quelques constantes/raccourcis pour le rendu.
+const Engine = TemporaEngine;
+const SPECIALS    = Engine.SPECIALS;
+const SPECIAL_IDS = Engine.SPECIAL_IDS;
+const isSpecial   = Engine.isSpecial;
 
 /* --------------------------------- État ---------------------------------- */
 const app = document.getElementById("app");
 let S = null;         // état de partie courant
 
-const CFG_DEFAULT = { nbPlayers:2, names:[], avatars:[], handSize:6, scoreMode:"points", rounds:8, specials:true };
-const NB_SPECIALS = 8;  // 2 de chaque effet mélangées au talon
-
-// mode "points" : points gagnés selon le classement de la manche (meilleur d'abord)
-const RANK_POINTS = {
-  2:[3,1], 3:[5,3,1], 4:[7,5,3,1], 5:[10,7,5,3,1],
-  6:[12,10,7,5,3,1], 7:[15,12,10,7,5,3,1], 8:[20,15,12,10,7,5,3,1]
-};
+const CFG_DEFAULT = Engine.CFG_DEFAULT;
 
 /* ------------------------------- Utilitaires ----------------------------- */
 function fmtYear(y){ return y < 0 ? `${-y} av. J.-C.` : `${y}`; }
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 // bascule une <img> vers la source suivante (data-srcs="a|b|c") ; retire l'img si épuisé
 function cardImgError(img){
@@ -242,36 +232,11 @@ function flipCardHTML(id, opts){
   </div></div>`;
 }
 
-/* ------------------------- Résolution d'une manche ----------------------- */
-// plays: [{player, id}] ; renvoie {scored[], winners[]}
-function resolveRound(targetYear, plays){
-  const scored = plays.map(p=>{
-    const real = EVENTS[p.id].year;
-    const dec = (S.round.decalage && S.round.decalage[p.player]) || 0;  // ±10 éventuel
-    const y = real + dec;                                                // année effective
-    return { ...p, year:real, dec, eff:y, gap:Math.abs(y-targetYear), before:y<=targetYear };
-  });
-  // tri : écart croissant, puis « avant » prioritaire sur « après »
-  scored.sort((a,b)=> a.gap-b.gap || (a.before===b.before?0:(a.before?-1:1)));
-  const best = scored[0];
-  // gagnants = même écart ET même côté que le meilleur (=> égalité parfaite)
-  const winners = scored.filter(p=> p.gap===best.gap && p.before===best.before);
-  return { scored, winners };
-}
-
-/* -------------------------- Classement (standings) ----------------------- */
-function standings(){
-  const idx = S.config.names.map((_,i)=>i);
-  const mode = S.config.nbPlayers===1 ? "precision" : S.config.scoreMode;  // solo = précision
-  idx.sort((a,b)=>{
-    if(mode==="carte")     return S.cards[b].length - S.cards[a].length;
-    if(mode==="precision") return S.malus[a] - S.malus[b];
-    return S.points[b] - S.points[a];   // points : plus grand total gagne
-  });
-  return idx;
-}
+/* ----------------- Résolution / classement (via moteur) ------------------ */
+// Le rendu appelle le moteur ; ces raccourcis gardent les appels courts.
+const standings = () => Engine.standings(S);
 function scoreLabel(i){
-  const mode = S.config.nbPlayers===1 ? "precision" : S.config.scoreMode;
+  const mode = Engine.scoreModeOf(S);
   if(mode==="carte")     return `${S.cards[i].length} 🃏`;
   if(mode==="precision") return `${S.malus[i]} ans`;
   return `${S.points[i]} pts`;
@@ -500,104 +465,26 @@ function adjustNames(names,n){ const out=names.slice(0,n); while(out.length<n) o
 function startGame(){
   const c=S.config;
   c.names=adjustNames(c.names.map((n,i)=>n.trim()||`Joueur ${i+1}`), c.nbPlayers);
-  const deck=shuffle(ALL_IDS.slice());   // distribution : événements uniquement
-  const hands=c.names.map(()=>[]);
-  for(let k=0;k<c.handSize;k++) for(let p=0;p<c.nbPlayers;p++){ const d=deck.pop(); if(d!==undefined) hands[p].push(d); }
-  // les cartes spéciales entrent APRÈS la distribution → aucune spéciale au 1er tour
-  if(c.specials && c.nbPlayers>1){
-    const per=Math.max(1, Math.round(NB_SPECIALS/SPECIAL_IDS.length));
-    SPECIAL_IDS.forEach(id=>{ for(let k=0;k<per;k++) deck.push(id); });
-    shuffle(deck);
-  }
-  S = {
-    config:c, deck, hands, discard:[],
-    cards:c.names.map(()=>[]),   // cartes remportées (mode carte)
-    malus:c.names.map(()=>0),    // malus cumulé (mode précision)
-    points:c.names.map(()=>0),   // points cumulés (mode points)
-    bestPlay:null,               // meilleur coup de la partie (plus petit écart)
-    roundNo:0,
-    phase:null, round:null
-  };
+  S = Engine.newGame(c, ALL_IDS);   // le moteur construit talon/mains/scores
   nextRound();
 }
 
 /* ----------------------------- Boucle de manche -------------------------- */
-function canStartRound(){
-  if(!S.deck.some(id=>!isSpecial(id))) return false;     // besoin d'un événement pour la cible
-  if(S.hands.some(h=>!h.some(id=>!isSpecial(id)))) return false; // chaque main a au moins un événement
-  if(S.config.rounds>0 && S.roundNo>=S.config.rounds) return false;
-  return true;
-}
-// retourne un événement du talon comme cible ; écarte les spéciales qui sortiraient
-function drawTarget(){
-  while(S.deck.length){
-    const t=S.deck.pop();
-    if(isSpecial(t)){ S.discard.push(t); continue; }
-    return t;
-  }
-  return null;
-}
 function nextRound(){
-  if(!canStartRound()){ renderGameOver(); return; }
-  const target=drawTarget();
-  if(target==null){ renderGameOver(); return; }
-  S.roundNo++;
-  S.round={ target, plays:S.config.names.map(()=>null), current:0, decalage:{}, dbl:{} };
+  if(!Engine.startNextRound(S)){ renderGameOver(); return; }
   // solo : pas d'interstitiel de passage
   S.phase = S.config.nbPlayers>1 ? "pass" : "play";
   render();
 }
 
 function submitPlay(cardId){
-  const r=S.round, p=r.current;
-  r.plays[p]=cardId;
-  // retirer la carte de la main
-  const h=S.hands[p]; h.splice(h.indexOf(cardId),1);
-  // joueur suivant ?
-  const next=p+1;
-  if(next<S.config.nbPlayers){
-    r.current=next;
-    S.phase = S.config.nbPlayers>1 ? "pass" : "play";
-  }else{
-    resolveAndShow();
-    return;
-  }
+  if(Engine.playCard(S, cardId)==="resolve"){ resolveAndShow(); return; }
+  S.phase = S.config.nbPlayers>1 ? "pass" : "play";   // joueur suivant
   render();
 }
 
 function resolveAndShow(){
-  const r=S.round;
-  const targetYear=EVENTS[r.target].year;
-  const plays=r.plays.map((id,player)=>({player,id}));
-  const {scored,winners}=resolveRound(targetYear,plays);
-  const dbl = p => r.dbl[p] ? 2 : 1;   // Double : ×2 pour ce joueur
-  // malus (mode précision) + meilleur coup de la partie (plus petit écart)
-  scored.forEach(s=>{
-    S.malus[s.player]+= s.gap * dbl(s.player);
-    if(!S.bestPlay || s.gap < S.bestPlay.gap)
-      S.bestPlay = { player:s.player, gap:s.gap, cardId:s.id, targetId:r.target, round:S.roundNo };
-  });
-  // carte remportée (mode carte)
-  let awarded=null;
-  if(winners.length===1){
-    awarded=winners[0].player; S.cards[awarded].push(r.target);
-    if(r.dbl[awarded]) S.cards[awarded].push(r.target);   // gain ×2 (Double)
-  }
-  // points par rang (mode points) — scored est trié du meilleur au pire ; ex æquo = même rang
-  const table = RANK_POINTS[S.config.nbPlayers];
-  if(table){
-    let pos=0;
-    scored.forEach((s,k)=>{
-      if(k>0 && !(s.gap===scored[k-1].gap && s.before===scored[k-1].before)) pos=k;
-      const pts=(table[pos]||1)*dbl(s.player);
-      S.points[s.player]+=pts; s.pts=pts;
-    });
-  }
-  r.result={scored,winners,targetYear,awarded,split:winners.length>1};
-  // repioche pour revenir à handSize (si possible)
-  for(let p=0;p<S.config.nbPlayers;p++){
-    while(S.hands[p].length<S.config.handSize && S.deck.length>0) S.hands[p].push(S.deck.pop());
-  }
+  Engine.resolve(S);   // scores, malus, points, carte attribuée, repioche → S.round.result
   S.phase="reveal";
   render();
 }
@@ -681,11 +568,9 @@ function renderPlay(){
 }
 
 /* -------------------------- Cartes spéciales (jeu) ----------------------- */
-function drawReplacement(p){ const d=S.deck.pop(); if(d!==undefined) S.hands[p].push(d); }
-function consumeSpecial(p, spId){
-  const i=S.hands[p].indexOf(spId); if(i>-1) S.hands[p].splice(i,1);
-  S.discard.push(spId); drawReplacement(p);
-}
+// Opérations d'état déléguées au moteur (signatures courtes pour le rendu).
+const drawReplacement = p => Engine.drawReplacement(S, p);
+const consumeSpecial  = (p, spId) => Engine.consumeSpecial(S, p, spId);
 function specialCardHTML(spId){
   const s=SPECIALS[spId];
   return `<div class="card sp"><div class="art"><span class="glyph">${s.icon}</span>`
@@ -721,10 +606,10 @@ function useSpecial(p, spId){
     box.innerHTML=`<div class="sp-q">Ta carte comptera&nbsp;:</div>
       <div class="btn-row"><button class="btn" data-d="-10">−10 ans</button><button class="btn" data-d="10">+10 ans</button></div>`;
     box.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{
-      S.round.decalage[p]=+b.dataset.d; consumeSpecial(p,spId); render();
+      Engine.setDecalage(S,p,+b.dataset.d); consumeSpecial(p,spId); render();
     });
   } else if(spId==="sp_double"){
-    S.round.dbl[p]=true; consumeSpecial(p,spId); toast("Manche doublée pour toi !"); render();
+    Engine.setDouble(S,p); consumeSpecial(p,spId); toast("Manche doublée pour toi !"); render();
   } else if(spId==="sp_echange"){
     consumeSpecial(p,spId); renderSwap(p);
   }
@@ -742,8 +627,7 @@ function renderSwap(p){
   </div>`;
   app.querySelector("#swapHand").onclick=(e)=>{
     const card=e.target.closest(".card"); if(!card) return;
-    const id=card.dataset.id, i=S.hands[p].indexOf(id);
-    if(i>-1){ S.hands[p].splice(i,1); S.discard.push(id); drawReplacement(p); toast("Carte échangée"); }
+    if(Engine.swapCard(S, p, card.dataset.id)) toast("Carte échangée");
     render();
   };
   app.querySelector("#swapCancel").onclick=()=>render();
@@ -799,7 +683,7 @@ function renderReveal(){
         </div>
       </div>
       <div class="footer-actions">
-        <button class="btn" id="next">${canStartRound()?"Manche suivante":"Voir le résultat final"}</button>
+        <button class="btn" id="next">${Engine.canStartRound(S)?"Manche suivante":"Voir le résultat final"}</button>
       </div>
     </div>
   </div>`;
@@ -886,6 +770,7 @@ async function boot(){
     const data=await res.json();
     data.evenements.forEach(e=>{ EVENTS[e.id]=e; });
     ALL_IDS=data.evenements.map(e=>e.id);
+    Engine.init({ events:EVENTS });   // le moteur partage la même table d'événements
     attachCardTooltip();
     initMuteBtn();
     const joinCode=(new URLSearchParams(location.search).get("join")||"").toUpperCase();
