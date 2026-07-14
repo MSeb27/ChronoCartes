@@ -108,25 +108,22 @@ function cardImgError(img){
   const i=(parseInt(img.dataset.i||"0",10))+1;
   if(i<list.length){ img.dataset.i=String(i); img.src=list[i]; } else { img.remove(); }
 }
-// double-tap : agrandit la carte-cible, sinon montre le titre (toast). Tap simple = sélection.
-function attachCardTooltip(){
-  let lastT=0, lastCard=null;
+// Zoom via la petite loupe dans le coin des cartes (le double-tap zoomait la page sur iPhone).
+// Écoute en phase de CAPTURE : on intercepte le clic sur la loupe AVANT les handlers de sélection.
+function attachCardZoom(){
   app.addEventListener("click", e=>{
-    const card=e.target.closest(".card[data-title]"); if(!card) return;
-    if(card===lastCard && e.timeStamp-lastT<400){       // 2e tap rapproché => agrandir la carte
-      showCardZoom(card.dataset.id, card.closest(".mini") ? "reveal" : "hidden");
-      lastT=0; lastCard=null;
-    }else{                                               // 1er tap => on mémorise (sélection gérée ailleurs)
-      lastT=e.timeStamp; lastCard=card;
-    }
-  });
+    const z=e.target.closest(".card-zoom-btn"); if(!z) return;
+    e.stopPropagation(); e.preventDefault();
+    const card=z.closest(".card"); if(!card) return;
+    showCardZoom(card.dataset.id, card.closest(".mini") ? "reveal" : "hidden");
+  }, true);
 }
 // agrandissement plein écran d'une carte + titre en bas ; touch/clic pour fermer
 function showCardZoom(id, mode="hidden"){
   const ov=document.createElement("div");
   ov.className="card-zoom";
   ov.innerHTML=`<div class="card-zoom-box">
-      <div class="card-zoom-inner">${cardHTML(id,{mode})}</div>
+      <div class="card-zoom-inner">${cardHTML(id,{mode, zoom:false})}</div>
       <div class="card-zoom-title">${esc(EVENTS[id].titre)}</div>
     </div>
     <div class="card-zoom-hint">Touchez pour fermer</div>`;
@@ -209,6 +206,7 @@ const NET = {
   play(cardId, cb){ this.socket.emit("netPlay", { cardId }, cb); },
   special(spId, choice, cb){ this.socket.emit("netSpecial", { spId, choice }, cb); },
   reject(spId, cb){ this.socket.emit("netReject", { spId }, cb); },
+  gauge(rejectId, cb){ this.socket.emit("netGauge", { rejectId }, cb); },
   next(cb){ this.socket.emit("netNext", {}, cb); },
   toLobby(cb){ this.socket.emit("netToLobby", {}, cb); },
   restart(cb){ this.socket.emit("netRestart", {}, cb); }
@@ -216,7 +214,8 @@ const NET = {
 
 /* --------------------------- Rendu d'une carte --------------------------- */
 // mode: "hidden" (année masquée) | "reveal" (année affichée) | "back" (dos)
-function cardHTML(id, {mode="hidden", extraClass=""}={}){
+// zoom: ajoute la petite loupe d'agrandissement (désactivée dans l'écran de zoom lui-même)
+function cardHTML(id, {mode="hidden", extraClass="", zoom=true}={}){
   const e = EVENTS[id];
   const frame = `var(--t-${e.theme})`;
   // illustration : essaie assets/cards/<id>.webp, puis .png, puis assets/<id>.png, sinon placeholder
@@ -226,10 +225,12 @@ function cardHTML(id, {mode="hidden", extraClass=""}={}){
   const art = glyph + `<img src="${esc(srcs[0])}" data-srcs="${esc(srcs.join("|"))}" data-i="0" alt="" onload="this.closest('.card').classList.add('has-img')" onerror="cardImgError(this)">`;
   // année affichée UNIQUEMENT à la révélation (pas d'icône ? ni de thème pendant le jeu)
   const yearBadge = mode==="reveal" ? `<div class="year">${fmtYear(e.year)}</div>` : "";
+  const zoomBtn = zoom ? `<button type="button" class="card-zoom-btn" aria-label="Agrandir la carte" tabindex="-1">🔍</button>` : "";
   return `<div class="card ${extraClass}" style="--frame:${frame}" data-id="${id}" title="${esc(e.titre)}" data-title="${esc(e.titre)}">
     ${yearBadge}
     <div class="art">${art}</div>
     <div class="title">${esc(e.titre)}</div>
+    ${zoomBtn}
     <div class="inner-frame"></div>
   </div>`;
 }
@@ -473,6 +474,7 @@ function renderNetPlay(v){
       </div>
     </div>
     <div class="handzone">
+      ${gaugeHTML(you.gauge||0, true)}
       ${dec?`<div class="dec-banner">⏳ Décalage actif : ${dec>0?'+':''}${dec} ans sur ta carte</div>`:``}
       ${you.dbl?`<div class="dec-banner">✖️ Manche doublée pour toi</div>`:``}
       <div class="hand" id="hand">${you.hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}</div>
@@ -497,6 +499,25 @@ function renderNetPlay(v){
     const btn=app.querySelector("#valider"); btn.disabled=true; btn.textContent="Envoi…";
     NET.play(selected, res=>{ if(!(res&&res.ok)){ btn.disabled=false; btn.textContent="Valider mon choix"; toast((res&&res.error)||"Erreur."); } });
   };
+  const gu=app.querySelector("#gaugeUse"); if(gu) gu.onclick=()=>renderNetGaugeSwap(v);
+}
+
+// Utilisation de la jauge (réseau) : choisir une carte à rejeter → le serveur pioche le talon.
+function renderNetGaugeSwap(v){
+  const hand=v.you.hand.filter(id=>!isSpecial(id));
+  app.innerHTML=`<div class="table">
+    ${netRoundBar(v)}
+    <div class="handzone">
+      <div class="swap-lbl">⏳ Jauge du temps — touche la carte à rejeter (tu piocheras le dessus du talon)</div>
+      <div class="hand" id="gaugeHand">${hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}</div>
+    </div>
+    <div class="footer-actions"><button class="btn secondary" id="gaugeCancel">Annuler</button></div>
+  </div>`;
+  app.querySelector("#gaugeHand").onclick=(e)=>{
+    const card=e.target.closest(".card"); if(!card) return;
+    NET.gauge(card.dataset.id, res=>{ if(!(res&&res.ok)) toast((res&&res.error)||"Impossible"); });
+  };
+  app.querySelector("#gaugeCancel").onclick=()=>renderNetGame();
 }
 
 // carte spéciale (réseau) — résolue en privé sur ton appareil
@@ -827,6 +848,22 @@ function roundBarHTML(){
   </div>`;
 }
 
+// Jauge du temps (sablier). Se remplit avec le cumul des écarts ; « prête » à TIME_GAUGE_MAX.
+// clickable=true ajoute l'action « Utiliser » (échanger une carte) quand elle est chargée.
+function gaugeHTML(value, clickable){
+  const MAX=Engine.TIME_GAUGE_MAX;
+  const ready=value>=MAX;
+  const pct=Math.max(0,Math.min(100,(value/MAX)*100));
+  const btn = (ready && clickable)
+    ? `<button class="btn tg-use" id="gaugeUse">Utiliser</button>` : "";
+  return `<div class="tgauge ${ready?'ready':''}">
+    <div class="tg-sand"><div class="tg-fill" style="width:${pct}%"></div></div>
+    <div class="tg-info"><span class="tg-lbl">⏳ Jauge du temps</span>
+      <span class="tg-val">${ready?'PRÊTE&nbsp;!':Math.floor(value)+'/'+MAX}</span></div>
+    ${btn}
+  </div>`;
+}
+
 function renderPass(){
   const p=S.round.current, name=S.config.names[p];
   app.innerHTML=`<div class="table">
@@ -866,6 +903,7 @@ function renderPlay(){
       </div>
     </div>
     <div class="handzone">
+      ${gaugeHTML((S.timeGauge&&S.timeGauge[p])||0, true)}
       ${dec?`<div class="dec-banner">⏳ Décalage actif : ${dec>0?'+':''}${dec} ans sur ta carte</div>`:``}
       <div class="hand" id="hand">
         ${hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}
@@ -888,6 +926,27 @@ function renderPlay(){
       document.getElementById("decNote").textContent=`Ta carte comptera : ${fmtYear(eff)}  (${dec>0?'+':''}${dec} ans)`; }
   };
   app.querySelector("#valider").onclick=()=>{ if(selected) submitPlay(selected); };
+  const gu=app.querySelector("#gaugeUse"); if(gu) gu.onclick=()=>renderGaugeSwap(p);
+}
+
+// Utilisation de la jauge (hotseat) : choisir une carte à rejeter → pioche le dessus du talon.
+function renderGaugeSwap(p){
+  const hand=S.hands[p].filter(id=>!isSpecial(id));
+  app.innerHTML=`<div class="table">
+    ${roundBarHTML()}
+    <div class="handzone">
+      <div class="swap-lbl">⏳ Jauge du temps — touche la carte à rejeter (tu piocheras le dessus du talon)</div>
+      <div class="hand" id="gaugeHand">${hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}</div>
+    </div>
+    <div class="footer-actions"><button class="btn secondary" id="gaugeCancel">Annuler</button></div>
+  </div>`;
+  app.querySelector("#gaugeHand").onclick=(e)=>{
+    const card=e.target.closest(".card"); if(!card) return;
+    const res=Engine.useTimeGauge(S, p, card.dataset.id);
+    toast(res.ok ? "Carte échangée (jauge)" : (res.error||"Impossible"));
+    render();
+  };
+  app.querySelector("#gaugeCancel").onclick=()=>render();
 }
 
 /* -------------------------- Cartes spéciales (jeu) ----------------------- */
@@ -1094,7 +1153,7 @@ async function boot(){
     data.evenements.forEach(e=>{ EVENTS[e.id]=e; });
     ALL_IDS=data.evenements.map(e=>e.id);
     Engine.init({ events:EVENTS });   // le moteur partage la même table d'événements
-    attachCardTooltip();
+    attachCardZoom();
     initMuteBtn();
     const joinCode=(new URLSearchParams(location.search).get("join")||"").toUpperCase();
     if(joinCode){ NET.pendingCode=joinCode; renderOnline(); } else renderSplash();

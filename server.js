@@ -85,7 +85,8 @@ function gameView(r, playerId) {
       hand: G.hands[idx].slice(),
       played: G.round.plays[idx] != null,
       decalage: G.round.decalage[idx] || 0,
-      dbl: !!G.round.dbl[idx]
+      dbl: !!G.round.dbl[idx],
+      gauge: (G.timeGauge && G.timeGauge[idx]) || 0    // jauge du temps (privée)
     };
     if (r.voyanceSeen && r.voyanceSeen.has(idx)) view.you.targetYear = EVENTS[G.round.target].year;
   } else {                                  // reveal / over : tout est dévoilé
@@ -206,6 +207,15 @@ io.on("connection", (socket) => {
       Engine.consumeSpecial(G, idx, spId);
       if (choice) Engine.swapCard(G, idx, choice);   // choice = id d'une carte de la main à remplacer
     } else return;
+    broadcastGame(code);
+    if (cb) cb({ ok: true });
+  });
+
+  socket.on("netGauge", ({ rejectId } = {}, cb) => {
+    const code = socketRoom[socket.id]; const r = rooms[code]; if (!r || !r.game || r.phase !== "play") return;
+    const idx = r.playerIndex[socket.id]; if (idx == null) return;
+    const res = Engine.useTimeGauge(r.game, idx, rejectId);
+    if (!res.ok) return cb && cb(res);
     broadcastGame(code);
     if (cb) cb({ ok: true });
   });
