@@ -54,16 +54,15 @@ function toast(msg){
 function cardHTML(id, {mode="hidden", extraClass=""}={}){
   const e = EVENTS[id];
   const frame = `var(--t-${e.theme})`;
-  const yearCls = mode==="reveal" ? "" : "hidden";
-  const yearTxt = mode==="reveal" ? fmtYear(e.year) : "";
   // illustration : essaie assets/cards/<id>.webp, puis .png, puis assets/<id>.png, sinon placeholder
   const glyph = `<span class="glyph">${THEME_ICON[e.theme]||"🕰️"}</span>`;
   const srcs = e.image ? [e.image]
     : [`assets/cards/${id}.webp`, `assets/cards/${id}.png`, `assets/${id}.png`];
   const art = glyph + `<img src="${esc(srcs[0])}" data-srcs="${esc(srcs.join("|"))}" data-i="0" alt="" onload="this.closest('.card').classList.add('has-img')" onerror="cardImgError(this)">`;
+  // année affichée UNIQUEMENT à la révélation (pas d'icône ? ni de thème pendant le jeu)
+  const yearBadge = mode==="reveal" ? `<div class="year">${fmtYear(e.year)}</div>` : "";
   return `<div class="card ${extraClass}" style="--frame:${frame}" data-id="${id}" title="${esc(e.titre)}" data-title="${esc(e.titre)}">
-    <div class="year ${yearCls}">${yearTxt}</div>
-    <span class="theme">${THEME_ICON[e.theme]||""}</span>
+    ${yearBadge}
     <div class="art">${art}</div>
     <div class="title">${esc(e.titre)}</div>
     <div class="inner-frame"></div>

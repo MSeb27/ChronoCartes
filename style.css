@@ -196,6 +196,7 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 .target-wrap{display:flex;flex-direction:column;align-items:center;gap:7px}
 .target-wrap .lbl{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700}
 .target{width:132px;height:190px}
+.target > .card{width:100%;height:100%}   /* même taille avec ou sans flip (fix J2) */
 
 /* flip 3D de la carte-cible (dos -> face) */
 .flip{width:100%;height:100%;perspective:1000px}
@@ -225,15 +226,23 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 .handzone{flex:1;min-height:0;display:flex;flex-direction:column}
 .handzone .lbl{color:var(--parch-1);font-weight:700;margin-bottom:8px;text-align:center;flex:0 0 auto;
   font-family:var(--serif);font-size:15px}
+/* main = carrousel horizontal : grosses cartes, on swipe pour voir la suivante */
 .hand{
-  flex:1;min-height:0;display:grid;gap:10px;overflow:auto;padding:4px;
-  grid-template-columns:repeat(auto-fill,minmax(96px,1fr));grid-auto-rows:150px;align-content:start;
+  flex:1;min-height:0;display:flex;align-items:center;gap:12px;
+  overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  padding:8px 19vw;scrollbar-width:none;
 }
-.hand .card{cursor:pointer;transition:transform .12s,box-shadow .12s}
-.hand .card:active{transform:scale(.97)}
-.hand .card.sel{transform:translateY(-8px);box-shadow:0 0 0 3px var(--gold),0 10px 22px rgba(0,0,0,.5)}
-.hand .card.sel::before{content:"✓";position:absolute;z-index:5;top:6px;left:50%;transform:translateX(-50%);
-  background:var(--gold);color:#3a2a12;width:26px;height:26px;border-radius:50%;
+.hand::-webkit-scrollbar{display:none}
+.hand .card{
+  flex:0 0 62vw;max-width:320px;max-height:100%;aspect-ratio:2/3;
+  scroll-snap-align:center;cursor:pointer;
+  transition:transform .15s, box-shadow .15s;
+}
+.hand .card:active{transform:scale(.98)}
+.hand .card.sel{box-shadow:0 0 0 3px var(--gold),0 12px 28px rgba(0,0,0,.55)}
+.hand .card.sel::before{content:"✓";position:absolute;z-index:5;top:8px;left:50%;transform:translateX(-50%);
+  background:var(--gold);color:#3a2a12;width:30px;height:30px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 
 /* ================= Interstitiel « passe l'appareil » ================= */
