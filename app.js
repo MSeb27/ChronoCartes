@@ -342,20 +342,21 @@ function renderPlay(){
   const hand=S.hands[p];
   const flip = !S.round.targetShown;   // flip seulement au 1er affichage de la manche
   S.round.targetShown = true;
+  const targetCard = flip ? flipCardHTML(S.round.target,{mode:"hidden"}) : cardHTML(S.round.target,{mode:"hidden"});
   app.innerHTML=`<div class="table">
     ${roundBarHTML()}
     <div class="board">
       <div class="deck">
-        <div class="backcard"></div><div class="backcard"></div><div class="backcard"></div>
+        <div class="backcard"></div><div class="backcard"></div>
+        <div class="top">${targetCard}</div>
         <div class="count">${S.deck.length} cartes</div>
       </div>
-      <div class="target-wrap">
-        <span class="lbl">Carte-cible</span>
-        <div class="target">${flip ? flipCardHTML(S.round.target,{mode:"hidden"}) : cardHTML(S.round.target,{mode:"hidden"})}</div>
+      <div class="cible">
+        <span class="cible-lbl">Carte-cible</span>
+        <div class="cible-title">${esc(EVENTS[S.round.target].titre)}</div>
       </div>
     </div>
     <div class="handzone">
-      <div class="lbl">${esc(name)} — quelle carte est la plus proche&nbsp;?</div>
       <div class="hand" id="hand">
         ${hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}
       </div>
