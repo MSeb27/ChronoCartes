@@ -69,7 +69,11 @@ const WIKI = {
   everest:"Mont Everest", adn:"Acide désoxyribonucléique", spoutnik:"Spoutnik 1", gagarine:"Youri Gagarine",
   lune:"Apollo 11", mur_berlin:"Chute du mur de Berlin", web:"World Wide Web", mandela:"Nelson Mandela",
   iphone:"iPhone (1re génération)",
-  roue:"Roue", curie:"Marie Curie", toutankhamon:"Toutânkhamon", inde:"Indépendance de l'Inde"
+  roue:"Roue", curie:"Marie Curie", toutankhamon:"Toutânkhamon", inde:"Indépendance de l'Inde",
+  bouddha:"Siddhartha Gautama", hannibal:"Hannibal Barca", clovis:"Clovis Ier", hastings:"Bataille de Hastings",
+  notredame:"Cathédrale Notre-Dame de Paris", gengis:"Gengis Khan", sixtine:"Plafond de la chapelle Sixtine",
+  copernic:"Nicolas Copernic", shakespeare:"William Shakespeare", darwin:"Charles Darwin", suez:"Canal de Suez",
+  liberte:"Statue de la Liberté", lascaux:"Grotte de Lascaux", concorde:"Concorde (avion)", euro:"Euro", obama:"Barack Obama"
 };
 function wikiUrl(id){
   // formulaire "Go" : redirige vers l'article exact s'il existe, sinon montre les résultats (jamais de 404)

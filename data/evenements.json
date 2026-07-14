@@ -2,7 +2,7 @@
   "_meta": {
     "description": "Paquet d'événements Tempora (Le Juste Temps). year: entier, négatif = avant J.-C. L'appli formate l'affichage (ex. -776 -> '776 av. J.-C.'). Le champ 'scene' sert d'amorce pour la génération d'images (voir docs/PROMPTS-IMAGE.md). L'année ne doit JAMAIS être gravée dans l'illustration.",
     "version": 1,
-    "count": 69
+    "count": 85
   },
   "evenements": [
     { "id": "ecriture",            "year": -3300, "titre": "Invention de l'écriture (Sumer)",              "epoque": "Antiquité",            "theme": "Culture",     "scene": "scribe sumérien gravant des tablettes d'argile cunéiformes, temple de Mésopotamie" },
@@ -73,6 +73,22 @@
     { "id": "roue",                "year": -3500, "titre": "Invention de la roue",                        "epoque": "Antiquité",            "theme": "Science",     "scene": "roue de potier et premier chariot à roues en bois dans une cité mésopotamienne, artisans au travail" },
     { "id": "curie",               "year": 1898,  "titre": "Marie Curie et la radioactivité",             "epoque": "Époque contemporaine", "theme": "Science",     "scene": "Marie Curie dans son laboratoire tenant une fiole de radium luminescent, verrerie et paillasse, pénombre" },
     { "id": "toutankhamon",        "year": 1922,  "titre": "Découverte du tombeau de Toutânkhamon",       "epoque": "Époque contemporaine", "theme": "Exploration", "scene": "Howard Carter ouvrant le tombeau de Toutânkhamon, masque funéraire doré étincelant, hiéroglyphes, lampe à la main" },
-    { "id": "inde",                "year": 1947,  "titre": "Indépendance de l'Inde",                      "epoque": "Époque contemporaine", "theme": "Politique",   "scene": "Gandhi marchant en tête d'une foule en liesse, drapeau indien safran-blanc-vert hissé, célébration de l'indépendance" }
+    { "id": "inde",                "year": 1947,  "titre": "Indépendance de l'Inde",                      "epoque": "Époque contemporaine", "theme": "Politique",   "scene": "Gandhi marchant en tête d'une foule en liesse, drapeau indien safran-blanc-vert hissé, célébration de l'indépendance" },
+    { "id": "bouddha",             "year": -528,  "titre": "Éveil de Bouddha",                            "epoque": "Antiquité",            "theme": "Société",     "scene": "Bouddha en méditation sereine sous l'arbre de la Bodhi, halo lumineux doré, forêt paisible" },
+    { "id": "hannibal",            "year": -218,  "titre": "Hannibal franchit les Alpes",                 "epoque": "Antiquité",            "theme": "Guerre",      "scene": "Hannibal et ses éléphants de guerre traversant les Alpes enneigées, soldats carthaginois dans la tempête" },
+    { "id": "clovis",              "year": 496,   "titre": "Baptême de Clovis",                           "epoque": "Moyen Âge",            "theme": "Politique",   "scene": "Clovis agenouillé baptisé par un évêque, cour franque rassemblée, colombe dans la lumière" },
+    { "id": "hastings",            "year": 1066,  "titre": "Bataille de Hastings",                        "epoque": "Moyen Âge",            "theme": "Guerre",      "scene": "chevaliers normands à cheval chargeant le mur de boucliers saxon, archers, esprit de la tapisserie de Bayeux" },
+    { "id": "notredame",           "year": 1163,  "titre": "Construction de Notre-Dame de Paris",         "epoque": "Moyen Âge",            "theme": "Culture",     "scene": "bâtisseurs médiévaux érigeant la cathédrale gothique de Notre-Dame, échafaudages, grande rosace" },
+    { "id": "gengis",              "year": 1206,  "titre": "Gengis Khan et l'Empire mongol",              "epoque": "Moyen Âge",            "theme": "Politique",   "scene": "Gengis Khan à cheval menant ses cavaliers mongols à travers la vaste steppe" },
+    { "id": "sixtine",             "year": 1512,  "titre": "Michel-Ange peint la chapelle Sixtine",       "epoque": "Temps modernes",       "theme": "Culture",     "scene": "Michel-Ange allongé sur un échafaudage peignant le plafond de la chapelle Sixtine" },
+    { "id": "copernic",            "year": 1543,  "titre": "Copernic et l'héliocentrisme",                "epoque": "Temps modernes",       "theme": "Science",     "scene": "Copernic présentant son modèle héliocentrique, le Soleil au centre des planètes, sphère armillaire" },
+    { "id": "shakespeare",         "year": 1599,  "titre": "Shakespeare et le théâtre du Globe",          "epoque": "Temps modernes",       "theme": "Culture",     "scene": "Shakespeare et des comédiens sur la scène du théâtre du Globe, public tout autour" },
+    { "id": "darwin",              "year": 1859,  "titre": "Darwin et l'origine des espèces",             "epoque": "Époque contemporaine", "theme": "Science",     "scene": "Darwin observant pinsons et tortue géante aux Galápagos, le Beagle au large" },
+    { "id": "suez",                "year": 1869,  "titre": "Ouverture du canal de Suez",                  "epoque": "Époque contemporaine", "theme": "Exploration", "scene": "navires franchissant le canal de Suez fraîchement ouvert, foule en liesse sur les berges, désert" },
+    { "id": "liberte",             "year": 1886,  "titre": "Inauguration de la statue de la Liberté",     "epoque": "Époque contemporaine", "theme": "Politique",   "scene": "statue de la Liberté dévoilée au-dessus du port de New York, foule et feux d'artifice" },
+    { "id": "lascaux",             "year": 1940,  "titre": "Découverte des grottes de Lascaux",           "epoque": "Époque contemporaine", "theme": "Culture",     "scene": "explorateurs à la lampe découvrant les peintures rupestres de Lascaux, animaux ocre sur la paroi" },
+    { "id": "concorde",            "year": 1969,  "titre": "Premier vol du Concorde",                     "epoque": "Époque contemporaine", "theme": "Science",     "scene": "le Concorde supersonique décollant, foule admirative sur la piste" },
+    { "id": "euro",                "year": 2002,  "titre": "Mise en circulation de l'euro",               "epoque": "Époque contemporaine", "theme": "Société",     "scene": "billets et pièces en euros échangés de main en main, cercle d'étoiles européennes" },
+    { "id": "obama",               "year": 2008,  "titre": "Barack Obama, 1er président afro-américain",  "epoque": "Époque contemporaine", "theme": "Politique",   "scene": "Barack Obama saluant une immense foule en liesse lors de son investiture, drapeaux américains agités" }
   ]
 }
