@@ -15,6 +15,36 @@ let ALL_IDS = [];
 const PLAYER_COLORS = ["#c0532b","#2e6d8a","#2f7d5c","#a9812f","#6b4a8a","#9b3b2f","#3f7d7d","#7a5a2e"];
 const pColor = i => PLAYER_COLORS[i % PLAYER_COLORS.length];
 
+// article Wikipédia (fr) par événement — pour le lien sur les cartouches de résultat
+const WIKI = {
+  ecriture:"Histoire de l'écriture", pyramides:"Pyramide de Khéops", hammurabi:"Code de Hammurabi",
+  jo_antiques:"Jeux olympiques antiques", rome_fondation:"Fondation de Rome", democratie_athenes:"Démocratie athénienne",
+  marathon:"Bataille de Marathon", alexandre:"Alexandre le Grand", muraille_chine:"Grande Muraille",
+  cesar:"Assassinat de Jules César", vesuve:"Éruption du Vésuve en 79", papier_chine:"Papier",
+  chute_rome:"Chute de l'Empire romain d'Occident", charlemagne:"Charlemagne", croisade1:"Première croisade",
+  magna_carta:"Grande Charte", marco_polo:"Marco Polo", peste_noire:"Peste noire", jeanne_arc:"Jeanne d'Arc",
+  constantinople:"Chute de Constantinople", gutenberg:"Johannes Gutenberg", amerique:"Découverte de l'Amérique",
+  joconde:"La Joconde", reforme_luther:"Réforme protestante", magellan:"Fernand de Magellan",
+  saint_barthelemy:"Massacre de la Saint-Barthélemy", edit_nantes:"Édit de Nantes", quebec:"Samuel de Champlain",
+  galilee:"Galilée (savant)", versailles:"Château de Versailles", newton:"Isaac Newton", watt_vapeur:"Machine à vapeur",
+  independance_usa:"Déclaration d'indépendance des États-Unis", montgolfiere:"Montgolfière", revolution_fr:"Révolution française",
+  sacre_napoleon:"Sacre de Napoléon Ier", waterloo:"Bataille de Waterloo", locomotive:"Locomotive à vapeur",
+  photographie:"Daguerréotype", abolition_esclavage:"Abolition de l'esclavage en France", telephone:"Invention du téléphone",
+  ampoule:"Lampe à incandescence", tour_eiffel:"Tour Eiffel", cinema_lumiere:"Cinématographe",
+  jo_modernes:"Jeux olympiques de 1896", wright:"Frères Wright", relativite:"Relativité restreinte", titanic:"Titanic",
+  ww1:"Première Guerre mondiale", revolution_russe:"Révolution russe", penicilline:"Pénicilline",
+  ww2:"Seconde Guerre mondiale", debarquement:"Débarquement de Normandie", vote_femmes:"Droit de vote des femmes en France",
+  hiroshima:"Bombardements atomiques d'Hiroshima et Nagasaki", ddh:"Déclaration universelle des droits de l'homme",
+  everest:"Mont Everest", adn:"Acide désoxyribonucléique", spoutnik:"Spoutnik 1", gagarine:"Youri Gagarine",
+  lune:"Apollo 11", mur_berlin:"Chute du mur de Berlin", web:"World Wide Web", mandela:"Nelson Mandela",
+  iphone:"iPhone (1re génération)"
+};
+function wikiUrl(id){
+  // formulaire "Go" : redirige vers l'article exact s'il existe, sinon montre les résultats (jamais de 404)
+  const t = WIKI[id] || (EVENTS[id] && EVENTS[id].titre) || "";
+  return "https://fr.wikipedia.org/w/index.php?go=Go&search=" + encodeURIComponent(t);
+}
+
 /* --------------------------------- État ---------------------------------- */
 const app = document.getElementById("app");
 let S = null;         // état de partie courant
@@ -404,6 +434,7 @@ function renderReveal(){
       <div class="info">
         <div class="pname"><span class="dot" style="background:${pColor(s.player)}"></span>${esc(S.config.names[s.player])} <span class="medal">${medal}</span></div>
         <div class="ptitle">${esc(EVENTS[s.id].titre)} — ${fmtYear(s.year)}</div>
+        <a class="wiki-link" href="${wikiUrl(s.id)}" target="_blank" rel="noopener noreferrer">📖 Wikipédia</a>
       </div>
       <div class="gap">${s.gap}<small>${sideTxt}</small></div>
     </div>`;
