@@ -474,7 +474,7 @@ function renderNetPlay(v){
       </div>
     </div>
     <div class="handzone">
-      ${gaugeHTML(you.gauge||0, true)}
+      ${gaugeHTML(you.gauge||0, true, you.color)}
       ${dec?`<div class="dec-banner">⏳ Décalage actif : ${dec>0?'+':''}${dec} ans sur ta carte</div>`:``}
       ${you.dbl?`<div class="dec-banner">✖️ Manche doublée pour toi</div>`:``}
       <div class="hand" id="hand">${you.hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}</div>
@@ -810,6 +810,7 @@ function startGame(){
   const c=S.config;
   c.names=adjustNames(c.names.map((n,i)=>n.trim()||`Joueur ${i+1}`), c.nbPlayers);
   S = Engine.newGame(c, ALL_IDS);   // le moteur construit talon/mains/scores
+  S.gaugeColors = c.names.map(()=>GAUGE_COLORS[Math.floor(Math.random()*GAUGE_COLORS.length)]);  // couleur de sablier au hasard
   nextRound();
 }
 
@@ -848,18 +849,21 @@ function roundBarHTML(){
   </div>`;
 }
 
-// Jauge du temps (sablier). Se remplit avec le cumul des écarts ; « prête » à TIME_GAUGE_MAX.
-// clickable=true ajoute l'action « Utiliser » (échanger une carte) quand elle est chargée.
-function gaugeHTML(value, clickable){
+// Jauge du temps = sablier (planche assets/sablier-<couleur>.webp, sprite 4 niveaux).
+// value 0..MAX ; niveau 0=vide 1=tiers 2=deux-tiers 3=plein lumineux (réservé au « prêt »).
+// clickable=true ajoute l'action « Utiliser » quand la jauge est chargée.
+const GAUGE_COLORS = ["amber","blue","green","purple"];
+function gaugeHTML(value, clickable, color){
   const MAX=Engine.TIME_GAUGE_MAX;
   const ready=value>=MAX;
-  const pct=Math.max(0,Math.min(100,(value/MAX)*100));
-  const btn = (ready && clickable)
-    ? `<button class="btn tg-use" id="gaugeUse">Utiliser</button>` : "";
-  return `<div class="tgauge ${ready?'ready':''}">
-    <div class="tg-sand"><div class="tg-fill" style="width:${pct}%"></div></div>
-    <div class="tg-info"><span class="tg-lbl">⏳ Jauge du temps</span>
-      <span class="tg-val">${ready?'PRÊTE&nbsp;!':Math.floor(value)+'/'+MAX}</span></div>
+  const f=value/MAX;
+  const lvl = ready?3 : (f<0.34?0 : f<0.67?1 : 2);
+  const posX=[0,33.333,66.666,100][lvl];
+  const btn=(ready&&clickable)?`<button class="btn tg-use" id="gaugeUse">Utiliser</button>`:"";
+  return `<div class="tgauge ${GAUGE_COLORS.includes(color)?color:'amber'} ${ready?'ready':''}">
+    <div class="tg-glass" style="background-position-x:${posX}%"></div>
+    <div class="tg-info"><span class="tg-lbl">Jauge du temps</span>
+      <span class="tg-val">${ready?'PRÊTE&nbsp;!':Math.floor(value)+' / '+MAX}</span></div>
     ${btn}
   </div>`;
 }
@@ -903,7 +907,7 @@ function renderPlay(){
       </div>
     </div>
     <div class="handzone">
-      ${gaugeHTML((S.timeGauge&&S.timeGauge[p])||0, true)}
+      ${gaugeHTML((S.timeGauge&&S.timeGauge[p])||0, true, S.gaugeColors&&S.gaugeColors[p])}
       ${dec?`<div class="dec-banner">⏳ Décalage actif : ${dec>0?'+':''}${dec} ans sur ta carte</div>`:``}
       <div class="hand" id="hand">
         ${hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}

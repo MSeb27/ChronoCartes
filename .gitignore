@@ -28,4 +28,5 @@ build/
 # Images sources lourdes (non versionnées) : originaux avant optimisation + stash
 assets/_originals/
 assets/_src/
+assets/sablier.png
 # *.psd

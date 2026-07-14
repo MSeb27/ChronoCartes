@@ -40,6 +40,7 @@ function genCode() {
   return c;
 }
 const DEFAULT_CONFIG = { handSize: 6, rounds: 8, scoreMode: "points", specials: true };
+const GAUGE_COLORS = ["amber", "blue", "green", "purple"];   // couleur de sablier attribuée au hasard
 
 function lobbyState(code) {
   const r = rooms[code]; if (!r) return null;
@@ -86,7 +87,8 @@ function gameView(r, playerId) {
       played: G.round.plays[idx] != null,
       decalage: G.round.decalage[idx] || 0,
       dbl: !!G.round.dbl[idx],
-      gauge: (G.timeGauge && G.timeGauge[idx]) || 0    // jauge du temps (privée)
+      gauge: (G.timeGauge && G.timeGauge[idx]) || 0,   // jauge du temps (privée)
+      color: (r.gaugeColors && r.gaugeColors[idx]) || "amber"
     };
     if (r.voyanceSeen && r.voyanceSeen.has(idx)) view.you.targetYear = EVENTS[G.round.target].year;
   } else {                                  // reveal / over : tout est dévoilé
@@ -112,6 +114,7 @@ function startNetGame(r) {
   };
   r.game = Engine.newGame(config, ALL_IDS);
   r.playerIndex = {}; order.forEach((id, i) => { r.playerIndex[id] = i; });
+  r.gaugeColors = order.map(() => GAUGE_COLORS[Math.floor(Math.random() * GAUGE_COLORS.length)]);
   r.voyanceSeen = new Set();
   if (!Engine.startNextRound(r.game)) { r.phase = "over"; }
   else r.phase = "play";
