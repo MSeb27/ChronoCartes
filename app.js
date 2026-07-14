@@ -344,15 +344,15 @@ function adjustNames(names,n){ const out=names.slice(0,n); while(out.length<n) o
 function startGame(){
   const c=S.config;
   c.names=adjustNames(c.names.map((n,i)=>n.trim()||`Joueur ${i+1}`), c.nbPlayers);
-  let cards=ALL_IDS.slice();
-  // cartes spéciales mélangées au talon (hors solo)
-  if(c.specials && c.nbPlayers>1){
-    const per=Math.max(1, Math.round(NB_SPECIALS/SPECIAL_IDS.length));
-    SPECIAL_IDS.forEach(id=>{ for(let k=0;k<per;k++) cards.push(id); });
-  }
-  const deck=shuffle(cards);
+  const deck=shuffle(ALL_IDS.slice());   // distribution : événements uniquement
   const hands=c.names.map(()=>[]);
   for(let k=0;k<c.handSize;k++) for(let p=0;p<c.nbPlayers;p++){ const d=deck.pop(); if(d!==undefined) hands[p].push(d); }
+  // les cartes spéciales entrent APRÈS la distribution → aucune spéciale au 1er tour
+  if(c.specials && c.nbPlayers>1){
+    const per=Math.max(1, Math.round(NB_SPECIALS/SPECIAL_IDS.length));
+    SPECIAL_IDS.forEach(id=>{ for(let k=0;k<per;k++) deck.push(id); });
+    shuffle(deck);
+  }
   S = {
     config:c, deck, hands, discard:[],
     cards:c.names.map(()=>[]),   // cartes remportées (collection)
