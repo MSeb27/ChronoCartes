@@ -122,6 +122,26 @@ No text, no lettering, no numbers. --ar 9:16 --style raw
 
 ---
 
+## 5. Cartes spéciales — planche 2×2 → `assets/cards/sp_*.webp`
+
+Ordre des cases : **HG = Voyance, HD = Décalage, BG = Échange, BD = Double** (le découpeur suit cet ordre).
+Sert aussi de **test de résolution** (si ~512×768 par case suffit, on générera les événements 4-par-planche).
+```
+A 2x2 grid of four separate ornate emblem cards, each a vertical card on aged cream parchment with a
+thin decorative border, same technique for all four: detailed graphite pencil sketch, meticulous
+greyscale hatching, with ONE selective spot color per card, hand-drawn feel.
+Top-left: a mystical all-seeing eye inside a glowing crystal ball — spot color a violet-blue glow.
+Top-right: an ornate hourglass entwined with clock hands and small gears, sand flowing — spot color warm amber on the sand.
+Bottom-left: two hands exchanging playing cards encircled by two swirling arrows — spot color emerald green on the arrows.
+Bottom-right: a single card splitting into two identical cards, a bold doubling motif — spot color vivid red.
+Four clearly separated cards, equal size, no text, no numbers, no lettering. --ar 2:3 --style raw
+```
+**Découpage** (renomme ta planche `Planche cartes speciales.png` dans Téléchargements, puis) :
+```
+python scripts/split-plate.py "%USERPROFILE%/Downloads/Planche cartes speciales.png" sp_voyance sp_decalage sp_echange sp_double
+```
+→ crée `assets/cards/sp_voyance.webp`, `sp_decalage.webp`, `sp_echange.webp`, `sp_double.webp` (le jeu les charge tout seul).
+
 ## Récap des fichiers attendus dans `assets/`
 
 | Fichier | Usage dans l'appli | Format |

@@ -86,22 +86,30 @@ Deux façons de compter — choisis-en une avant de commencer :
 > le malus cumulé comme départage*. C'est le réglage recommandé pour l'appli (un curseur
 > permettra de choisir A, B ou mixte).
 
-## 7. Cartes spéciales (module optionnel)
+## 7. Cartes spéciales (module — implémenté)
 
-Ces cartes se glissent dans le talon (ou une main de départ). Chacune casse une règle une fois.
-Elles répondent à tes idées (« changer une carte avec le talon », « retourner une carte déjà jouée »…).
+**8 cartes spéciales** (2 de chaque effet) sont **mélangées au talon** (réglage on/off dans l'appli,
+**désactivées en solo**).
+
+**Comment elles arrivent & se jouent** (pas de réserve — résolution immédiate) :
+- La **carte-cible est toujours un événement** : si une spéciale sort comme cible, on l'**écarte** et
+  on retourne la suivante.
+- Une spéciale n'apparaît donc que **dans les mains**. **Au début de ton tour**, tu dois la traiter :
+  - **Utiliser** → l'effet s'applique, puis tu **pioches une carte de remplacement** ;
+  - **Rejeter** → défausse, puis tu **pioches une carte de remplacement**.
+  - (Si le remplacement est encore une spéciale, tu la traites aussi.) Tu joues ensuite normalement.
+- On ne **garde pas** une spéciale d'un tour à l'autre.
 
 | Carte | Effet |
 |---|---|
-| 🔄 **Échange** | Avant de jouer, échange **une carte de ta main** contre celle du **dessus du talon** (à l'aveugle). |
-| 👁️ **Voyance** | Regarde **en secret** l'année de la carte-cible **ou** d'une carte adverse déjà posée. |
-| ♻️ **Résurrection** | La cible de cette manche n'est pas piochée : on **retourne au hasard une carte de la défausse** déjà jouée. |
-| ✖️ **Double manche** | La manche compte **double** (2 cartes gagnées, ou malus ×2). |
-| ⏳ **Décalage** | Applique **±10 ans** à ta carte jouée pour cette manche uniquement (bluff / ajustement). |
-| 🎭 **Sabotage** | Oblige **un adversaire** à rejouer sa carte (il en change). |
+| 👁️ **Voyance** | Regarde **en secret** l'année de la **carte-cible** (ce tour). |
+| ⏳ **Décalage** | Ta carte jouée compte **+10 ou −10 ans** (tu choisis ; l'effet t'est **affiché** avant de valider). |
+| 🔄 **Échange** | Échange **une carte de ta main** contre le **dessus du talon** (à l'aveugle). |
+| ✖️ **Double** | Pour **toi seul**, cette manche compte **double** (gain ×2 si tu gagnes, malus ×2 sinon). |
 
-> Les cartes spéciales sont **désactivables** dans l'appli. On commencera sans, puis on les
-> ajoutera une fois la base stable.
+> Images des cartes spéciales : `assets/cards/sp_voyance|sp_decalage|sp_echange|sp_double.webp`
+> (générées via la planche 2×2 — voir `docs/PROMPTS-UI.md`). Tant qu'elles n'existent pas, l'icône
+> emoji sert de repli.
 
 ## 8. Conseils d'équilibrage
 

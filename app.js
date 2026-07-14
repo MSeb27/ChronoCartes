@@ -76,11 +76,22 @@ function wikiUrl(id){
   return "https://fr.wikipedia.org/w/index.php?go=Go&search=" + encodeURIComponent(t);
 }
 
+// ---------------------------- Cartes spéciales ----------------------------
+const SPECIALS = {
+  sp_voyance:  { nom:"Voyance",  icon:"👁️", desc:"Regarde en secret l'année de la carte-cible." },
+  sp_decalage: { nom:"Décalage", icon:"⏳", desc:"Ta carte comptera +10 ou −10 ans (à toi de choisir)." },
+  sp_echange:  { nom:"Échange",  icon:"🔄", desc:"Échange une carte de ta main contre le dessus du talon." },
+  sp_double:   { nom:"Double",   icon:"✖️", desc:"Cette manche compte double pour toi (gain ×2 ou malus ×2)." }
+};
+const SPECIAL_IDS = Object.keys(SPECIALS);
+const isSpecial = id => Object.prototype.hasOwnProperty.call(SPECIALS, id);
+
 /* --------------------------------- État ---------------------------------- */
 const app = document.getElementById("app");
 let S = null;         // état de partie courant
 
-const CFG_DEFAULT = { nbPlayers:2, names:[], avatars:[], handSize:6, scoreMode:"mixte", rounds:8 };
+const CFG_DEFAULT = { nbPlayers:2, names:[], avatars:[], handSize:6, scoreMode:"mixte", rounds:8, specials:true };
+const NB_SPECIALS = 8;  // 2 de chaque effet mélangées au talon
 
 /* ------------------------------- Utilitaires ----------------------------- */
 function fmtYear(y){ return y < 0 ? `${-y} av. J.-C.` : `${y}`; }
@@ -159,8 +170,10 @@ function flipCardHTML(id, opts){
 // plays: [{player, id}] ; renvoie {scored[], winners[]}
 function resolveRound(targetYear, plays){
   const scored = plays.map(p=>{
-    const y = EVENTS[p.id].year;
-    return { ...p, year:y, gap:Math.abs(y-targetYear), before:y<=targetYear };
+    const real = EVENTS[p.id].year;
+    const dec = (S.round.decalage && S.round.decalage[p.player]) || 0;  // ±10 éventuel
+    const y = real + dec;                                                // année effective
+    return { ...p, year:real, dec, eff:y, gap:Math.abs(y-targetYear), before:y<=targetYear };
   });
   // tri : écart croissant, puis « avant » prioritaire sur « après »
   scored.sort((a,b)=> a.gap-b.gap || (a.before===b.before?0:(a.before?-1:1)));
@@ -268,6 +281,14 @@ function renderSetup(){
         </div>
         <div class="hint" id="modeHint"></div>
       </div>
+      <div class="field">
+        <label>Cartes spéciales</label>
+        <div class="seg" id="spSeg">
+          <button data-sp="1" class="${c.specials?'on':''}">Oui</button>
+          <button data-sp="0" class="${!c.specials?'on':''}">Non</button>
+        </div>
+        <div class="hint">8 cartes (Voyance, Décalage, Échange, Double) mêlées au talon. Désactivées en solo.</div>
+      </div>
     </div>
 
     <button class="btn" id="startBtn">Distribuer & commencer</button>
@@ -295,6 +316,8 @@ function renderSetup(){
     c.rounds=+b.dataset.r; app.querySelectorAll("#roundsSeg button").forEach(x=>x.classList.toggle("on",x===b)); };
   app.querySelector("#modeSeg").onclick=(e)=>{ const b=e.target.closest("[data-m]"); if(!b)return;
     c.scoreMode=b.dataset.m; app.querySelectorAll("#modeSeg button").forEach(x=>x.classList.toggle("on",x===b)); updateModeHint(); };
+  app.querySelector("#spSeg").onclick=(e)=>{ const b=e.target.closest("[data-sp]"); if(!b)return;
+    c.specials=b.dataset.sp==="1"; app.querySelectorAll("#spSeg button").forEach(x=>x.classList.toggle("on",x===b)); };
   app.querySelector("#startBtn").onclick=startGame;
 
   function renderNames(){
@@ -320,11 +343,17 @@ function adjustNames(names,n){ const out=names.slice(0,n); while(out.length<n) o
 function startGame(){
   const c=S.config;
   c.names=adjustNames(c.names.map((n,i)=>n.trim()||`Joueur ${i+1}`), c.nbPlayers);
-  const deck=shuffle(ALL_IDS.slice());
+  let cards=ALL_IDS.slice();
+  // cartes spéciales mélangées au talon (hors solo)
+  if(c.specials && c.nbPlayers>1){
+    const per=Math.max(1, Math.round(NB_SPECIALS/SPECIAL_IDS.length));
+    SPECIAL_IDS.forEach(id=>{ for(let k=0;k<per;k++) cards.push(id); });
+  }
+  const deck=shuffle(cards);
   const hands=c.names.map(()=>[]);
-  for(let k=0;k<c.handSize;k++) for(let p=0;p<c.nbPlayers;p++) hands[p].push(deck.pop());
+  for(let k=0;k<c.handSize;k++) for(let p=0;p<c.nbPlayers;p++){ const d=deck.pop(); if(d!==undefined) hands[p].push(d); }
   S = {
-    config:c, deck, hands,
+    config:c, deck, hands, discard:[],
     cards:c.names.map(()=>[]),   // cartes remportées (collection)
     malus:c.names.map(()=>0),    // malus cumulé (précision)
     roundNo:0,
@@ -335,16 +364,26 @@ function startGame(){
 
 /* ----------------------------- Boucle de manche -------------------------- */
 function canStartRound(){
-  if(S.deck.length<1) return false;
-  if(S.hands.some(h=>h.length<1)) return false;
+  if(!S.deck.some(id=>!isSpecial(id))) return false;     // besoin d'un événement pour la cible
+  if(S.hands.some(h=>!h.some(id=>!isSpecial(id)))) return false; // chaque main a au moins un événement
   if(S.config.rounds>0 && S.roundNo>=S.config.rounds) return false;
   return true;
 }
+// retourne un événement du talon comme cible ; écarte les spéciales qui sortiraient
+function drawTarget(){
+  while(S.deck.length){
+    const t=S.deck.pop();
+    if(isSpecial(t)){ S.discard.push(t); continue; }
+    return t;
+  }
+  return null;
+}
 function nextRound(){
   if(!canStartRound()){ renderGameOver(); return; }
+  const target=drawTarget();
+  if(target==null){ renderGameOver(); return; }
   S.roundNo++;
-  const target=S.deck.pop();
-  S.round={ target, plays:S.config.names.map(()=>null), current:0 };
+  S.round={ target, plays:S.config.names.map(()=>null), current:0, decalage:{}, dbl:{} };
   // solo : pas d'interstitiel de passage
   S.phase = S.config.nbPlayers>1 ? "pass" : "play";
   render();
@@ -372,11 +411,12 @@ function resolveAndShow(){
   const targetYear=EVENTS[r.target].year;
   const plays=r.plays.map((id,player)=>({player,id}));
   const {scored,winners}=resolveRound(targetYear,plays);
-  // maj scores
-  scored.forEach(s=>{ S.malus[s.player]+=s.gap; });
+  // maj scores (malus ×2 si Double activé par ce joueur)
+  scored.forEach(s=>{ S.malus[s.player]+= s.gap * (r.dbl[s.player]?2:1); });
   let awarded=null;
   if(winners.length===1 && S.config.scoreMode!=="precision"){
     awarded=winners[0].player; S.cards[awarded].push(r.target);
+    if(r.dbl[awarded]) S.cards[awarded].push(r.target);   // gain ×2 (Double)
   }
   r.result={scored,winners,targetYear,awarded,split:winners.length>1};
   // repioche pour revenir à handSize (si possible)
@@ -420,6 +460,9 @@ function renderPass(){
 function renderPlay(){
   const p=S.round.current, name=S.config.names[p];
   const hand=S.hands[p];
+  const sp = hand.find(isSpecial);            // résoudre les cartes spéciales avant de jouer
+  if(sp) return renderSpecial(p, sp);
+  const dec = S.round.decalage[p]||0;         // décalage ±10 éventuel
   const flip = !S.round.targetShown;   // flip seulement au 1er affichage de la manche
   S.round.targetShown = true;
   const targetOpts = {mode:"hidden", extraClass:"is-target"};
@@ -438,11 +481,13 @@ function renderPlay(){
       </div>
     </div>
     <div class="handzone">
+      ${dec?`<div class="dec-banner">⏳ Décalage actif : ${dec>0?'+':''}${dec} ans sur ta carte</div>`:``}
       <div class="hand" id="hand">
         ${hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}
       </div>
     </div>
-    <div class="footer-actions">
+    <div class="footer-actions" style="flex-direction:column;gap:8px">
+      ${dec?`<div class="dec-note" id="decNote">Choisis ta carte pour voir l'effet du décalage</div>`:``}
       <button class="btn" id="valider" disabled>Valider mon choix</button>
     </div>
   </div>`;
@@ -454,8 +499,79 @@ function renderPlay(){
     handEl.querySelectorAll(".card").forEach(c=>c.classList.remove("sel"));
     card.classList.add("sel"); selected=card.dataset.id;
     app.querySelector("#valider").disabled=false;
+    if(dec){ const eff=EVENTS[selected].year+dec;
+      document.getElementById("decNote").textContent=`Ta carte comptera : ${fmtYear(eff)}  (${dec>0?'+':''}${dec} ans)`; }
   };
   app.querySelector("#valider").onclick=()=>{ if(selected) submitPlay(selected); };
+}
+
+/* -------------------------- Cartes spéciales (jeu) ----------------------- */
+function drawReplacement(p){ const d=S.deck.pop(); if(d!==undefined) S.hands[p].push(d); }
+function consumeSpecial(p, spId){
+  const i=S.hands[p].indexOf(spId); if(i>-1) S.hands[p].splice(i,1);
+  S.discard.push(spId); drawReplacement(p);
+}
+function specialCardHTML(spId){
+  const s=SPECIALS[spId];
+  return `<div class="card sp"><div class="art"><span class="glyph">${s.icon}</span>`
+       + `<img src="assets/cards/${spId}.webp" alt="" onload="this.closest('.card').classList.add('has-img')" onerror="this.remove()"></div>`
+       + `<div class="inner-frame"></div></div>`;
+}
+// écran de résolution d'une carte spéciale (au début du tour)
+function renderSpecial(p, spId){
+  const s=SPECIALS[spId];
+  app.innerHTML=`<div class="table">
+    ${roundBarHTML()}
+    <div class="special">
+      <div class="sp-hint">Carte spéciale pour <b style="color:${pColor(p)}">${esc(S.config.names[p])}</b></div>
+      <div class="sp-card">${specialCardHTML(spId)}</div>
+      <div class="sp-name">${s.icon} ${esc(s.nom)}</div>
+      <div class="sp-desc">${esc(s.desc)}</div>
+      <div class="sp-actions" id="spActions">
+        <button class="btn" id="spUse">Utiliser</button>
+        <button class="btn secondary" id="spReject">Rejeter</button>
+      </div>
+    </div>
+  </div>`;
+  app.querySelector("#spReject").onclick=()=>{ consumeSpecial(p,spId); render(); };
+  app.querySelector("#spUse").onclick=()=>useSpecial(p,spId);
+}
+function useSpecial(p, spId){
+  const box=app.querySelector("#spActions");
+  if(spId==="sp_voyance"){
+    box.innerHTML=`<div class="sp-reveal">Année de la carte-cible&nbsp;:<br><b>${fmtYear(EVENTS[S.round.target].year)}</b></div>
+      <button class="btn" id="spOk">Continuer</button>`;
+    app.querySelector("#spOk").onclick=()=>{ consumeSpecial(p,spId); render(); };
+  } else if(spId==="sp_decalage"){
+    box.innerHTML=`<div class="sp-q">Ta carte comptera&nbsp;:</div>
+      <div class="btn-row"><button class="btn" data-d="-10">−10 ans</button><button class="btn" data-d="10">+10 ans</button></div>`;
+    box.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{
+      S.round.decalage[p]=+b.dataset.d; consumeSpecial(p,spId); render();
+    });
+  } else if(spId==="sp_double"){
+    S.round.dbl[p]=true; consumeSpecial(p,spId); toast("Manche doublée pour toi !"); render();
+  } else if(spId==="sp_echange"){
+    consumeSpecial(p,spId); renderSwap(p);
+  }
+}
+// échange : choisir une carte de sa main à remplacer par le dessus du talon
+function renderSwap(p){
+  const hand=S.hands[p].filter(id=>!isSpecial(id));
+  app.innerHTML=`<div class="table">
+    ${roundBarHTML()}
+    <div class="handzone">
+      <div class="swap-lbl">🔄 Échange — touche la carte à remplacer par le dessus du talon</div>
+      <div class="hand" id="swapHand">${hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}</div>
+    </div>
+    <div class="footer-actions"><button class="btn secondary" id="swapCancel">Garder mes cartes</button></div>
+  </div>`;
+  app.querySelector("#swapHand").onclick=(e)=>{
+    const card=e.target.closest(".card"); if(!card) return;
+    const id=card.dataset.id, i=S.hands[p].indexOf(id);
+    if(i>-1){ S.hands[p].splice(i,1); S.discard.push(id); drawReplacement(p); toast("Carte échangée"); }
+    render();
+  };
+  app.querySelector("#swapCancel").onclick=()=>render();
 }
 
 function renderReveal(){
@@ -465,12 +581,14 @@ function renderReveal(){
     const isWin = res.winners.some(w=>w.player===s.player) && !res.split;
     const isSplit = res.split && res.winners.some(w=>w.player===s.player);
     const medal = isWin?"🥇":(isSplit?"🤝":"");
-    const sideTxt = s.year===res.targetYear?"pile dessus":(s.before?"avant":"après");
+    const sideTxt = s.eff===res.targetYear?"pile dessus":(s.before?"avant":"après");
+    const decTag = s.dec?` <span class="dec-tag">${s.dec>0?'+':''}${s.dec}</span>`:'';
+    const dblTag = r.dbl[s.player]?` <span class="dbl-tag">✖️2</span>`:'';
     return `<div class="res-row ${isWin||isSplit?'winner':''}" style="animation-delay:${rankIdx*90}ms">
       <div class="mini">${cardHTML(s.id,{mode:"reveal"})}</div>
       <div class="info">
-        <div class="pname">${avatarDotHTML(s.player)}${esc(S.config.names[s.player])} <span class="medal">${medal}</span></div>
-        <div class="ptitle">${esc(EVENTS[s.id].titre)} — ${fmtYear(s.year)}</div>
+        <div class="pname">${avatarDotHTML(s.player)}${esc(S.config.names[s.player])} <span class="medal">${medal}</span>${dblTag}</div>
+        <div class="ptitle">${esc(EVENTS[s.id].titre)} — ${fmtYear(s.year)}${decTag}</div>
         <a class="wiki-link" href="${wikiUrl(s.id)}" target="_blank" rel="noopener noreferrer">📖 Wikipédia</a>
       </div>
       <div class="gap">${s.gap}<small>${sideTxt}</small></div>
