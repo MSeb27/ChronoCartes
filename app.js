@@ -11,9 +11,40 @@ const THEME_ICON = {
 let EVENTS = {};      // id -> event
 let ALL_IDS = [];
 
-// couleurs par joueur (pastilles, avatars)
+// couleurs par joueur (anneau des avatars)
 const PLAYER_COLORS = ["#c0532b","#2e6d8a","#2f7d5c","#a9812f","#6b4a8a","#9b3b2f","#3f7d7d","#7a5a2e"];
 const pColor = i => PLAYER_COLORS[i % PLAYER_COLORS.length];
+
+// avatars (40 icônes découpées de la planche) — le joueur choisit la sienne
+const AVATARS = Array.from({length:40}, (_,i)=>"av"+String(i+1).padStart(2,"0"));
+const defaultAvatar = i => AVATARS[i % AVATARS.length];
+function ensureAvatars(c){
+  c.avatars = c.avatars || [];
+  for(let i=0;i<c.nbPlayers;i++) if(!c.avatars[i]) c.avatars[i]=defaultAvatar(i);
+  c.avatars = c.avatars.slice(0, c.nbPlayers);
+}
+const avatarSrc = i => "assets/avatars/"+((S.config.avatars&&S.config.avatars[i])||defaultAvatar(i))+".webp";
+// petite pastille avatar (anneau couleur joueur) pour listes/scores
+function avatarDotHTML(i){
+  return `<span class="avatar-ic" style="--pc:${pColor(i)}"><img src="${avatarSrc(i)}" alt="" onerror="this.style.visibility='hidden'"></span>`;
+}
+// sélecteur d'avatar plein écran pour le joueur pi
+function openAvatarPicker(pi){
+  const ov=document.createElement("div"); ov.className="avatar-picker";
+  ov.innerHTML=`<div class="ap-panel">
+    <div class="ap-title">Choisis ton icône</div>
+    <div class="ap-grid">${AVATARS.map(a=>`<button class="ap-ic ${S.config.avatars[pi]===a?'on':''}" data-a="${a}"><img src="assets/avatars/${a}.webp" alt="" onerror="this.remove()"></button>`).join("")}</div>
+  </div>`;
+  ov.addEventListener("click", e=>{
+    if(e.target===ov){ ov.remove(); return; }
+    const b=e.target.closest(".ap-ic"); if(!b) return;
+    S.config.avatars[pi]=b.dataset.a;
+    const img=document.querySelector(`.pl-avatar[data-pi="${pi}"] img`);
+    if(img) img.src="assets/avatars/"+b.dataset.a+".webp";
+    ov.remove();
+  });
+  document.body.appendChild(ov);
+}
 
 // article Wikipédia (fr) par événement — pour le lien sur les cartouches de résultat
 const WIKI = {
@@ -49,7 +80,7 @@ function wikiUrl(id){
 const app = document.getElementById("app");
 let S = null;         // état de partie courant
 
-const CFG_DEFAULT = { nbPlayers:2, names:[], handSize:6, scoreMode:"mixte", rounds:8 };
+const CFG_DEFAULT = { nbPlayers:2, names:[], avatars:[], handSize:6, scoreMode:"mixte", rounds:8 };
 
 /* ------------------------------- Utilitaires ----------------------------- */
 function fmtYear(y){ return y < 0 ? `${-y} av. J.-C.` : `${y}`; }
@@ -160,7 +191,7 @@ function scoreLabel(i){
 function sbRowHTML(i, rk){
   return `<div class="sb-row">
     <span class="rank">${rk+1}</span>
-    <span class="dot" style="background:${pColor(i)}"></span>
+    ${avatarDotHTML(i)}
     <span class="nm">${esc(S.config.names[i])}</span>
     <span class="sc">${scoreLabel(i)}</span>
   </div>`;
@@ -244,6 +275,7 @@ function renderSetup(){
   </div>`;
 
   S = S || {}; S.config = c;
+  ensureAvatars(c);
   renderNames();
   updateModeHint();
 
@@ -254,6 +286,7 @@ function renderSetup(){
     if(a==="h-")  c.handSize=Math.max(3,c.handSize-1);
     if(a==="h+")  c.handSize=Math.min(8,c.handSize+1);
     c.names = adjustNames(c.names, c.nbPlayers);
+    ensureAvatars(c);
     document.getElementById("plVal").textContent=c.nbPlayers;
     document.getElementById("hVal").textContent=c.handSize;
     renderNames();
@@ -266,8 +299,12 @@ function renderSetup(){
 
   function renderNames(){
     const box=document.getElementById("names");
-    box.innerHTML = c.names.map((n,i)=>`<input data-i="${i}" value="${esc(n)}" maxlength="16" placeholder="Joueur ${i+1}">`).join("");
+    box.innerHTML = c.names.map((n,i)=>`<div class="pl-row">
+        <button class="pl-avatar" data-pi="${i}" style="--pc:${pColor(i)}" aria-label="Choisir une icône"><img src="${avatarSrc(i)}" alt="" onerror="this.remove()"></button>
+        <input data-i="${i}" value="${esc(n)}" maxlength="16" placeholder="Joueur ${i+1}">
+      </div>`).join("");
     box.querySelectorAll("input").forEach(inp=>inp.oninput=()=>{ c.names[+inp.dataset.i]=inp.value; });
+    box.querySelectorAll(".pl-avatar").forEach(btn=>btn.onclick=()=>openAvatarPicker(+btn.dataset.pi));
   }
   function updateModeHint(){
     const h={collection:"Le gagnant de la manche remporte la carte-cible. Score = nb de cartes.",
@@ -370,7 +407,7 @@ function renderPass(){
   app.innerHTML=`<div class="table">
     ${roundBarHTML()}
     <div class="pass">
-      <div class="avatar" style="--pc:${pColor(p)}">${esc((name.trim()[0]||"?").toUpperCase())}</div>
+      <div class="avatar" style="--pc:${pColor(p)}"><img src="${avatarSrc(p)}" alt="" onerror="this.remove()"></div>
       <div>À toi de jouer,</div>
       <div class="who" style="color:${pColor(p)}">${esc(name)}</div>
       <div class="instr">Prends l'appareil (que les autres ne regardent pas 🙈), puis dévoile ta main.</div>
@@ -432,7 +469,7 @@ function renderReveal(){
     return `<div class="res-row ${isWin||isSplit?'winner':''}" style="animation-delay:${rankIdx*90}ms">
       <div class="mini">${cardHTML(s.id,{mode:"reveal"})}</div>
       <div class="info">
-        <div class="pname"><span class="dot" style="background:${pColor(s.player)}"></span>${esc(S.config.names[s.player])} <span class="medal">${medal}</span></div>
+        <div class="pname">${avatarDotHTML(s.player)}${esc(S.config.names[s.player])} <span class="medal">${medal}</span></div>
         <div class="ptitle">${esc(EVENTS[s.id].titre)} — ${fmtYear(s.year)}</div>
         <a class="wiki-link" href="${wikiUrl(s.id)}" target="_blank" rel="noopener noreferrer">📖 Wikipédia</a>
       </div>

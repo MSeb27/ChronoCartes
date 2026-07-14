@@ -118,6 +118,31 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 .names{display:flex;flex-direction:column;gap:8px}
 .names input{padding:11px 12px;border-radius:10px;border:1px solid var(--parch-edge);
   background:#fbf5e6;font:inherit;color:var(--ink)}
+.pl-row{display:flex;align-items:center;gap:10px}
+.pl-row input{flex:1;min-width:0}
+.pl-avatar{width:46px;height:46px;flex:0 0 auto;border-radius:50%;padding:0;cursor:pointer;
+  border:none;background:transparent;position:relative}
+.pl-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;background:#fbf5e6;
+  box-shadow:0 0 0 2px var(--pc,#888),0 2px 5px rgba(0,0,0,.3)}
+.pl-avatar::after{content:"✎";position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:50%;
+  background:var(--gold);color:#3a2a12;font-size:11px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.pl-avatar:active{transform:scale(.95)}
+/* petite pastille avatar (listes/scores) */
+.avatar-ic{display:inline-flex;width:24px;height:24px;border-radius:50%;flex:0 0 auto;overflow:hidden;
+  background:#f4e8cf;box-shadow:0 0 0 2px var(--pc,#888);vertical-align:middle}
+.avatar-ic img{width:100%;height:100%;object-fit:cover}
+/* sélecteur d'avatar */
+.avatar-picker{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:18px;
+  background:rgba(8,5,2,.85);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);animation:zoomIn .18s ease both}
+.ap-panel{width:100%;max-width:460px;max-height:86dvh;overflow:auto;border-radius:18px;padding:16px;
+  background:linear-gradient(180deg,var(--parch-1),var(--parch-2));border:2px solid var(--parch-edge);box-shadow:var(--shadow)}
+.ap-title{font-family:var(--serif);font-weight:800;font-size:18px;text-align:center;margin-bottom:12px;color:var(--ink)}
+.ap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px}
+.ap-ic{aspect-ratio:1;border-radius:50%;padding:0;overflow:hidden;cursor:pointer;border:2px solid transparent;
+  background:#fbf5e6;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.ap-ic img{width:100%;height:100%;object-fit:cover;display:block}
+.ap-ic.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent)}
+.ap-ic:active{transform:scale(.93)}
 .seg{display:flex;gap:6px;flex-wrap:wrap}
 .seg button{flex:1;min-width:80px;padding:11px 8px;border-radius:11px;border:1px solid var(--parch-edge);
   background:#fbf5e6;color:var(--ink-soft);font-weight:700}
@@ -249,10 +274,9 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 
 /* ================= Interstitiel « passe l'appareil » ================= */
 .pass{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;color:var(--parch-1)}
-.pass .avatar{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-family:var(--serif);font-size:46px;font-weight:800;color:#fff;
-  background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.4), transparent 45%), var(--pc,#7a5a2e);
-  box-shadow:0 0 0 4px rgba(255,255,255,.15), var(--shadow);animation:pop .4s ease both}
+.pass .avatar{width:106px;height:106px;border-radius:50%;overflow:hidden;background:#f4e8cf;
+  box-shadow:0 0 0 4px var(--pc,#7a5a2e), var(--shadow);animation:pop .4s ease both}
+.pass .avatar img{width:100%;height:100%;object-fit:cover}
 .pass .who{font-family:var(--serif);font-size:clamp(26px,8vw,36px);font-weight:800}
 .pass .instr{max-width:320px;color:#e9dcc0;line-height:1.4}
 .pass .btn{max-width:320px}
