@@ -145,6 +145,40 @@ function toast(msg){
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),1600);
 }
 
+/* --------------------------------- Audio --------------------------------- */
+// Musique de fond en boucle (assets/audio/theme.*) + jingles (assets/audio/<nom>.*).
+// Tolère l'absence de fichiers (play() échoue silencieusement). Bouton muet persistant.
+const AUDIO = {
+  muted: (()=>{ try{ return localStorage.getItem("tempora_muted")==="1"; }catch(e){ return false; } })(),
+  bgm: null,
+  ensureBgm(){
+    if(this.bgm) return;
+    const a=document.createElement("audio"); a.loop=true; a.volume=0.32; a.preload="auto";
+    ["assets/audio/theme.ogg","assets/audio/theme.mp3"].forEach(src=>{
+      const s=document.createElement("source"); s.src=src; a.appendChild(s);
+    });
+    this.bgm=a;
+  },
+  startBgm(){ if(this.muted) return; this.ensureBgm(); this.bgm.play().catch(()=>{}); },
+  jingle(name){
+    if(this.muted) return;
+    const a=new Audio(); a.volume=0.7;
+    a.src="assets/audio/"+name+".mp3"; a.play().catch(()=>{ a.src="assets/audio/"+name+".ogg"; a.play().catch(()=>{}); });
+  },
+  setMuted(m){
+    this.muted=m; try{ localStorage.setItem("tempora_muted", m?"1":"0"); }catch(e){}
+    if(this.bgm){ if(m) this.bgm.pause(); else this.bgm.play().catch(()=>{}); }
+    updateMuteBtn();
+  }
+};
+function updateMuteBtn(){ const b=document.getElementById("muteBtn"); if(b) b.textContent=AUDIO.muted?"🔇":"🔊"; }
+function initMuteBtn(){
+  if(document.getElementById("muteBtn")) return;
+  const b=document.createElement("button"); b.id="muteBtn"; b.setAttribute("aria-label","Son");
+  b.onclick=()=>AUDIO.setMuted(!AUDIO.muted);
+  document.body.appendChild(b); updateMuteBtn();
+}
+
 /* --------------------------- Rendu d'une carte --------------------------- */
 // mode: "hidden" (année masquée) | "reveal" (année affichée) | "back" (dos)
 function cardHTML(id, {mode="hidden", extraClass=""}={}){
@@ -234,7 +268,7 @@ function renderSplash(){
       <div class="hint center" style="color:#e9dcc0;margin-top:10px">${ALL_IDS.length} événements · 1 à 8 joueurs · sur un seul appareil</div>
     </div>
   </div>`;
-  app.querySelector("#play").onclick = () => renderSetup();
+  app.querySelector("#play").onclick = () => { AUDIO.startBgm(); renderSetup(); };
 }
 
 function renderSetup(){
@@ -699,6 +733,7 @@ function renderGameOver(){
       </div>
     </div>
   </div>`;
+  AUDIO.jingle("victory");   // fanfare de fin
   // confettis
   const conf=document.getElementById("confetti");
   const cfCol=["#c0532b","#2e6d8a","#2f7d5c","#d0ad5e","#6b4a8a","#9b3b2f","#3f7d7d"];
@@ -719,6 +754,7 @@ async function boot(){
     data.evenements.forEach(e=>{ EVENTS[e.id]=e; });
     ALL_IDS=data.evenements.map(e=>e.id);
     attachCardTooltip();
+    initMuteBtn();
     renderSplash();
   }catch(err){
     app.innerHTML=`<div class="loading">Erreur de chargement des événements.<br>${esc(err.message)}</div>`;

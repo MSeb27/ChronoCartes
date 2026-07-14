@@ -324,7 +324,8 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 
 /* ================= Fin de partie ================= */
 .gameover{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:10px;text-align:center;color:var(--parch-1);overflow:hidden}
+  gap:10px;text-align:center;color:var(--parch-1);overflow:hidden;border-radius:16px;
+  background:linear-gradient(180deg, rgba(0,0,0,.32), rgba(0,0,0,.5)), url("assets/endscreen.png") center/cover no-repeat}
 .gameover > *{z-index:1}
 .go-crown{font-size:56px;animation:pop .6s ease both}
 .go-champ-label{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:700}
@@ -353,6 +354,10 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 
 /* ================= Divers ================= */
 .footer-actions{flex:0 0 auto;margin-top:10px;display:flex;gap:10px}
+#muteBtn{position:fixed;top:calc(8px + var(--safe-t));right:9px;z-index:60;width:36px;height:36px;border-radius:50%;
+  border:1px solid rgba(208,173,94,.45);background:rgba(20,12,4,.5);color:var(--parch-1);font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+#muteBtn:active{transform:scale(.92)}
 #toast{position:fixed;left:50%;bottom:calc(18px + var(--safe-b));transform:translateX(-50%) translateY(20px);
   background:rgba(20,12,4,.92);color:var(--parch-1);padding:10px 16px;border-radius:999px;
   font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:50;border:1px solid var(--gold)}

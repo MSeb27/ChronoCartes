@@ -1,0 +1,9 @@
+Fichiers audio de Tempora (déposer ici) :
+
+  theme.mp3   (ou theme.ogg)   -> musique de fond, jouée en boucle pendant la partie
+                                  (démarre au clic sur « Jouer », coupée par le bouton 🔊/🔇)
+  victory.mp3 (ou victory.ogg) -> jingle joué sur l'écran de fin (podium)
+
+Le jeu tolère l'absence de ces fichiers (aucun son, aucune erreur bloquante).
+Formats conseillés : MP3 (compatible partout) ou OGG. Garder des fichiers légers
+(musique de fond ~1-2 min en boucle, jingle ~5-15 s).
