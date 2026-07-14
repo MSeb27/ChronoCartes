@@ -31,6 +31,23 @@ function cardImgError(img){
   const i=(parseInt(img.dataset.i||"0",10))+1;
   if(i<list.length){ img.dataset.i=String(i); img.src=list[i]; } else { img.remove(); }
 }
+// titre en tooltip : survol (attribut title) sur PC, appui long sur mobile (toast)
+function attachCardTooltip(){
+  let timer=null, fired=false, sx=0, sy=0;
+  const clear=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
+  app.addEventListener("pointerdown", e=>{
+    const card=e.target.closest(".card[data-title]"); if(!card) return;
+    fired=false; sx=e.clientX; sy=e.clientY;
+    clear(); timer=setTimeout(()=>{ fired=true; toast(card.dataset.title); }, 420);
+  });
+  app.addEventListener("pointermove", e=>{
+    if(timer && (Math.abs(e.clientX-sx)>10 || Math.abs(e.clientY-sy)>10)) clear();
+  });
+  app.addEventListener("pointerup", clear);
+  app.addEventListener("pointercancel", clear);
+  // supprime le clic (sélection) qui suit un appui long
+  app.addEventListener("click", e=>{ if(fired){ e.stopPropagation(); e.preventDefault(); fired=false; } }, true);
+}
 let toastTimer=null;
 function toast(msg){
   const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
@@ -48,8 +65,8 @@ function cardHTML(id, {mode="hidden", extraClass=""}={}){
   const glyph = `<span class="glyph">${THEME_ICON[e.theme]||"🕰️"}</span>`;
   const srcs = e.image ? [e.image]
     : [`assets/cards/${id}.webp`, `assets/cards/${id}.png`, `assets/${id}.png`];
-  const art = glyph + `<img src="${esc(srcs[0])}" data-srcs="${esc(srcs.join("|"))}" data-i="0" alt="" onerror="cardImgError(this)">`;
-  return `<div class="card ${extraClass}" style="--frame:${frame}" data-id="${id}">
+  const art = glyph + `<img src="${esc(srcs[0])}" data-srcs="${esc(srcs.join("|"))}" data-i="0" alt="" onload="this.closest('.card').classList.add('has-img')" onerror="cardImgError(this)">`;
+  return `<div class="card ${extraClass}" style="--frame:${frame}" data-id="${id}" title="${esc(e.titre)}" data-title="${esc(e.titre)}">
     <div class="year ${yearCls}">${yearTxt}</div>
     <span class="theme">${THEME_ICON[e.theme]||""}</span>
     <div class="art">${art}</div>
@@ -451,6 +468,7 @@ async function boot(){
     const data=await res.json();
     data.evenements.forEach(e=>{ EVENTS[e.id]=e; });
     ALL_IDS=data.evenements.map(e=>e.id);
+    attachCardTooltip();
     renderSplash();
   }catch(err){
     app.innerHTML=`<div class="loading">Erreur de chargement des événements.<br>${esc(err.message)}</div>`;
