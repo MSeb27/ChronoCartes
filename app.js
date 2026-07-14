@@ -31,22 +31,17 @@ function cardImgError(img){
   const i=(parseInt(img.dataset.i||"0",10))+1;
   if(i<list.length){ img.dataset.i=String(i); img.src=list[i]; } else { img.remove(); }
 }
-// titre en tooltip : survol (attribut title) sur PC, appui long sur mobile (toast)
+// titre : survol (attribut title) sur PC, DOUBLE-TAP sur mobile (toast). Tap simple = sélection.
 function attachCardTooltip(){
-  let timer=null, fired=false, sx=0, sy=0;
-  const clear=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
-  app.addEventListener("pointerdown", e=>{
+  let lastT=0, lastCard=null;
+  app.addEventListener("click", e=>{
     const card=e.target.closest(".card[data-title]"); if(!card) return;
-    fired=false; sx=e.clientX; sy=e.clientY;
-    clear(); timer=setTimeout(()=>{ fired=true; toast(card.dataset.title); }, 420);
+    if(card===lastCard && e.timeStamp-lastT<400){       // 2e tap rapproché => titre
+      toast(card.dataset.title); lastT=0; lastCard=null;
+    }else{                                               // 1er tap => on mémorise (la sélection se fait ailleurs)
+      lastT=e.timeStamp; lastCard=card;
+    }
   });
-  app.addEventListener("pointermove", e=>{
-    if(timer && (Math.abs(e.clientX-sx)>10 || Math.abs(e.clientY-sy)>10)) clear();
-  });
-  app.addEventListener("pointerup", clear);
-  app.addEventListener("pointercancel", clear);
-  // supprime le clic (sélection) qui suit un appui long
-  app.addEventListener("click", e=>{ if(fired){ e.stopPropagation(); e.preventDefault(); fired=false; } }, true);
 }
 let toastTimer=null;
 function toast(msg){

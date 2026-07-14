@@ -138,6 +138,7 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
   border:2px solid var(--frame,var(--parch-edge));
   box-shadow:var(--shadow); color:var(--ink);
   display:flex;flex-direction:column;
+  -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
 }
 .card::after{ /* grain papier */
   content:"";position:absolute;inset:0;background:var(--paper);background-size:150px 150px;
@@ -155,7 +156,8 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
     radial-gradient(90% 70% at 50% 40%, rgba(255,255,255,.55), transparent 72%);
 }
 .card .art .glyph{font-size:min(20vw,58px);opacity:.4;filter:saturate(.6)}
-.card .art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.card .art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  pointer-events:none;-webkit-user-drag:none}
 /* titre : overlay bas, visible seulement pour les cartes SANS illustration (placeholder) ;
    dès qu'une image est chargée, la classe .has-img le masque et le titre passe en tooltip */
 .card .title{
