@@ -68,7 +68,8 @@ const WIKI = {
   hiroshima:"Bombardements atomiques d'Hiroshima et Nagasaki", ddh:"Déclaration universelle des droits de l'homme",
   everest:"Mont Everest", adn:"Acide désoxyribonucléique", spoutnik:"Spoutnik 1", gagarine:"Youri Gagarine",
   lune:"Apollo 11", mur_berlin:"Chute du mur de Berlin", web:"World Wide Web", mandela:"Nelson Mandela",
-  iphone:"iPhone (1re génération)"
+  iphone:"iPhone (1re génération)",
+  roue:"Roue", curie:"Marie Curie", toutankhamon:"Toutânkhamon", inde:"Indépendance de l'Inde"
 };
 function wikiUrl(id){
   // formulaire "Go" : redirige vers l'article exact s'il existe, sinon montre les résultats (jamais de 404)

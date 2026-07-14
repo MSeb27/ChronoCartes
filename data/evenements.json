@@ -2,7 +2,7 @@
   "_meta": {
     "description": "Paquet d'événements ChronoCartes. year: entier, négatif = avant J.-C. L'appli formate l'affichage (ex. -776 -> '776 av. J.-C.'). Le champ 'scene' sert d'amorce pour la génération d'images (voir docs/PROMPTS-IMAGE.md). L'année ne doit JAMAIS être gravée dans l'illustration.",
     "version": 1,
-    "count": 65
+    "count": 69
   },
   "evenements": [
     { "id": "ecriture",            "year": -3300, "titre": "Invention de l'écriture (Sumer)",              "epoque": "Antiquité",            "theme": "Culture",     "scene": "scribe sumérien gravant des tablettes d'argile cunéiformes, temple de Mésopotamie" },
@@ -69,6 +69,10 @@
     { "id": "mur_berlin",          "year": 1989,  "titre": "Chute du mur de Berlin",                      "epoque": "Époque contemporaine", "theme": "Politique",   "scene": "foule debout sur le mur de Berlin, marteaux et pioches, liesse, graffitis, novembre 1989" },
     { "id": "web",                 "year": 1991,  "titre": "Naissance du Web",                            "epoque": "Époque contemporaine", "theme": "Science",     "scene": "Tim Berners-Lee devant un ordinateur des années 90, premières pages web, toile de connexions lumineuses" },
     { "id": "mandela",             "year": 1994,  "titre": "Fin de l'apartheid, Mandela président",       "epoque": "Époque contemporaine", "theme": "Politique",   "scene": "Nelson Mandela votant puis saluant la foule, longue file d'électeurs sud-africains, liesse arc-en-ciel" },
-    { "id": "iphone",              "year": 2007,  "titre": "Premier smartphone tactile (iPhone)",         "epoque": "Époque contemporaine", "theme": "Science",     "scene": "présentation du premier smartphone tout tactile, écran lumineux dans une main, scène sombre, projecteur" }
+    { "id": "iphone",              "year": 2007,  "titre": "Premier smartphone tactile (iPhone)",         "epoque": "Époque contemporaine", "theme": "Science",     "scene": "présentation du premier smartphone tout tactile, écran lumineux dans une main, scène sombre, projecteur" },
+    { "id": "roue",                "year": -3500, "titre": "Invention de la roue",                        "epoque": "Antiquité",            "theme": "Science",     "scene": "roue de potier et premier chariot à roues en bois dans une cité mésopotamienne, artisans au travail" },
+    { "id": "curie",               "year": 1898,  "titre": "Marie Curie et la radioactivité",             "epoque": "Époque contemporaine", "theme": "Science",     "scene": "Marie Curie dans son laboratoire tenant une fiole de radium luminescent, verrerie et paillasse, pénombre" },
+    { "id": "toutankhamon",        "year": 1922,  "titre": "Découverte du tombeau de Toutânkhamon",       "epoque": "Époque contemporaine", "theme": "Exploration", "scene": "Howard Carter ouvrant le tombeau de Toutânkhamon, masque funéraire doré étincelant, hiéroglyphes, lampe à la main" },
+    { "id": "inde",                "year": 1947,  "titre": "Indépendance de l'Inde",                      "epoque": "Époque contemporaine", "theme": "Politique",   "scene": "Gandhi marchant en tête d'une foule en liesse, drapeau indien safran-blanc-vert hissé, célébration de l'indépendance" }
   ]
 }
