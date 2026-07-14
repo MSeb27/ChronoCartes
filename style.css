@@ -390,10 +390,11 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 .loading{flex:1;display:flex;align-items:center;justify-content:center;color:var(--parch-1);font-weight:700}
 
 /* ---------------- cartes spéciales ---------------- */
-.special{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
-  text-align:center;color:var(--parch-1);padding:8px}
+.special{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;text-align:center;color:var(--parch-1);padding:8px;overflow-y:auto}
 .sp-hint{color:#e9dcc0;font-size:14px}
-.sp-card{width:min(62vw,240px);aspect-ratio:2/3;animation:pop .4s ease both}
+/* hauteur plafonnée pour laisser la place aux boutons Utiliser/Rejeter (sinon rognés sur mobile) */
+.sp-card{height:min(30dvh,240px);width:auto;aspect-ratio:2/3;flex:0 0 auto;animation:pop .4s ease both}
 .sp-card .card{width:100%;height:100%}
 .card.sp{--frame:var(--gold-deep)}
 .card.sp .art .glyph{font-size:66px;opacity:.85;filter:none}
@@ -437,3 +438,11 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
 .net-wait-ic{font-size:44px;animation:hourglass 1.6s ease-in-out infinite}
 @keyframes hourglass{0%,100%{transform:rotate(0)}50%{transform:rotate(180deg)}}
 .voyance-peek{margin-top:4px;font-weight:800;color:#d0ad5e;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+
+/* Réglages dans le salon en ligne */
+.lobby-settings{width:100%;max-width:420px;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.lobby-settings .field{margin:0}
+.lobby-settings label{font-size:12px}
+.lobby-settings.ro{align-items:center;gap:4px}
+.lobby-settings .ro-line{color:var(--parch-1);font-size:14px}

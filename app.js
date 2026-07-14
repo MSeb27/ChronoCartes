@@ -336,19 +336,55 @@ function renderLobby(){
   const st=NET.lobby; if(!st) return;
   const isHost = st.hostId===NET.youId;
   const joinUrl = location.origin + "/?join=" + st.code;
+  const c = st.config || {};
+  const roundsLbl = r => r===0 ? "∞ talon" : r;
+  const modeLbl = { carte:"Carte", precision:"Précision", points:"Points" };
+  // Réglages : éditables par l'hôte (segments/steppers) ; en lecture seule pour les autres.
+  const settings = isHost ? `
+    <div class="lobby-settings" id="lobbySettings">
+      <div class="sb-title">Réglages de la partie</div>
+      <div class="field">
+        <label>Cartes en main</label>
+        <div class="stepper">
+          <button data-act="h-">−</button><span class="val" id="lbH">${c.handSize}</span><button data-act="h+">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Manches</label>
+        <div class="seg" id="lbRounds">${[6,8,12,0].map(r=>`<button data-r="${r}" class="${c.rounds===r?'on':''}">${roundsLbl(r)}</button>`).join("")}</div>
+      </div>
+      <div class="field">
+        <label>Décompte des points</label>
+        <div class="seg" id="lbMode">${["carte","precision","points"].map(m=>`<button data-m="${m}" class="${c.scoreMode===m?'on':''}">${modeLbl[m]}</button>`).join("")}</div>
+      </div>
+      <div class="field">
+        <label>Cartes spéciales</label>
+        <div class="seg" id="lbSp">
+          <button data-sp="1" class="${c.specials?'on':''}">Oui</button>
+          <button data-sp="0" class="${!c.specials?'on':''}">Non</button>
+        </div>
+      </div>
+    </div>` : `
+    <div class="lobby-settings ro">
+      <div class="sb-title">Réglages de la partie</div>
+      <div class="ro-line">🃏 ${c.handSize} cartes · 🕐 ${roundsLbl(c.rounds)} manches</div>
+      <div class="ro-line">🏅 ${modeLbl[c.scoreMode]||c.scoreMode} · ✨ Spéciales : ${c.specials?"oui":"non"}</div>
+    </div>`;
+
   app.innerHTML=`<div class="table">
     <div class="lobby">
       <div class="lobby-code">Code du salon<br><b>${st.code}</b></div>
       <button class="btn secondary" id="shareLink">📋 Copier le lien d'invitation</button>
       <div class="lobby-players">
         <div class="sb-title">Joueurs (${st.players.length}/8)</div>
-        <div class="sb-list" style="max-height:34dvh">
+        <div class="sb-list" style="max-height:22dvh">
           ${st.players.map((p,idx)=>`<div class="sb-row">
             <span class="avatar-ic" style="--pc:${pColor(idx)}"><img src="assets/avatars/${p.avatar}.webp" alt="" onerror="this.style.visibility='hidden'"></span>
             <span class="nm">${esc(p.name)}${p.isHost?" 👑":""}${p.id===NET.youId?" (toi)":""}</span>
           </div>`).join("")}
         </div>
       </div>
+      ${settings}
       ${isHost
         ? `<button class="btn" id="startNet">Commencer la partie</button>`
         : `<div class="hint center" style="color:#e9dcc0">En attente de l'hôte…</div>`}
@@ -360,6 +396,25 @@ function renderLobby(){
     else toast(joinUrl);
   };
   app.querySelector("#leaveLobby").onclick=()=>{ NET.leave(); renderSplash(); };
+
+  // Réglages hôte → envoi du seul changement (le serveur fusionne champ par champ
+  // et rediffuse le salon à tous ; éviter d'envoyer un snapshot périmé qui écraserait
+  // un réglage modifié juste avant).
+  if(isHost){
+    const push = patch => NET.setConfig(patch);
+    app.querySelectorAll("#lobbySettings [data-act]").forEach(b=>b.onclick=()=>{
+      let h=st.config.handSize;
+      if(b.dataset.act==="h-") h=Math.max(3,h-1);
+      if(b.dataset.act==="h+") h=Math.min(8,h+1);
+      document.getElementById("lbH").textContent=h; push({ handSize:h });
+    });
+    const seg=(sel,key,cast)=>{ const el=app.querySelector(sel); if(el) el.onclick=e=>{
+      const b=e.target.closest("button[data-"+key+"]"); if(!b) return; push({ [({r:'rounds',m:'scoreMode',sp:'specials'})[key]]: cast(b.dataset[key]) }); }; };
+    seg("#lbRounds","r",v=>+v);
+    seg("#lbMode","m",v=>v);
+    seg("#lbSp","sp",v=>v==="1");
+  }
+
   const sb=app.querySelector("#startNet");
   if(sb) sb.onclick=()=>{
     if(st.players.length<2){ toast("Il faut au moins 2 joueurs."); return; }
