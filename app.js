@@ -37,19 +37,20 @@ function attachCardTooltip(){
   app.addEventListener("click", e=>{
     const card=e.target.closest(".card[data-title]"); if(!card) return;
     if(card===lastCard && e.timeStamp-lastT<400){       // 2e tap rapproché
-      if(card.classList.contains("is-target")) showCardZoom(card.dataset.id);
-      else toast(card.dataset.title);
+      if(card.classList.contains("is-target")) showCardZoom(card.dataset.id, "hidden");
+      else if(card.closest(".mini")) showCardZoom(card.dataset.id, "reveal"); // vignette de résultat (année visible)
+      else toast(card.dataset.title);                                         // carte de main
       lastT=0; lastCard=null;
     }else{                                               // 1er tap => on mémorise (sélection gérée ailleurs)
       lastT=e.timeStamp; lastCard=card;
     }
   });
 }
-// agrandissement plein écran d'une carte (année masquée) ; touch/clic pour fermer
-function showCardZoom(id){
+// agrandissement plein écran d'une carte ; touch/clic pour fermer
+function showCardZoom(id, mode="hidden"){
   const ov=document.createElement("div");
   ov.className="card-zoom";
-  ov.innerHTML=`<div class="card-zoom-inner">${cardHTML(id,{mode:"hidden"})}</div><div class="card-zoom-hint">Touchez pour fermer</div>`;
+  ov.innerHTML=`<div class="card-zoom-inner">${cardHTML(id,{mode})}</div><div class="card-zoom-hint">Touchez pour fermer</div>`;
   ov.addEventListener("click", ()=>ov.remove());
   document.body.appendChild(ov);
 }
