@@ -1,0 +1,10 @@
+# Déploiement Render (https://render.com) — Blueprint
+# New → Blueprint → connecte le dépôt GitHub → Render lit ce fichier.
+services:
+  - type: web
+    name: tempora
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true          # redéploie automatiquement à chaque push sur main
