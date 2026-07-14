@@ -31,17 +31,27 @@ function cardImgError(img){
   const i=(parseInt(img.dataset.i||"0",10))+1;
   if(i<list.length){ img.dataset.i=String(i); img.src=list[i]; } else { img.remove(); }
 }
-// titre : survol (attribut title) sur PC, DOUBLE-TAP sur mobile (toast). Tap simple = sélection.
+// double-tap : agrandit la carte-cible, sinon montre le titre (toast). Tap simple = sélection.
 function attachCardTooltip(){
   let lastT=0, lastCard=null;
   app.addEventListener("click", e=>{
     const card=e.target.closest(".card[data-title]"); if(!card) return;
-    if(card===lastCard && e.timeStamp-lastT<400){       // 2e tap rapproché => titre
-      toast(card.dataset.title); lastT=0; lastCard=null;
-    }else{                                               // 1er tap => on mémorise (la sélection se fait ailleurs)
+    if(card===lastCard && e.timeStamp-lastT<400){       // 2e tap rapproché
+      if(card.classList.contains("is-target")) showCardZoom(card.dataset.id);
+      else toast(card.dataset.title);
+      lastT=0; lastCard=null;
+    }else{                                               // 1er tap => on mémorise (sélection gérée ailleurs)
       lastT=e.timeStamp; lastCard=card;
     }
   });
+}
+// agrandissement plein écran d'une carte (année masquée) ; touch/clic pour fermer
+function showCardZoom(id){
+  const ov=document.createElement("div");
+  ov.className="card-zoom";
+  ov.innerHTML=`<div class="card-zoom-inner">${cardHTML(id,{mode:"hidden"})}</div><div class="card-zoom-hint">Touchez pour fermer</div>`;
+  ov.addEventListener("click", ()=>ov.remove());
+  document.body.appendChild(ov);
 }
 let toastTimer=null;
 function toast(msg){
@@ -342,7 +352,8 @@ function renderPlay(){
   const hand=S.hands[p];
   const flip = !S.round.targetShown;   // flip seulement au 1er affichage de la manche
   S.round.targetShown = true;
-  const targetCard = flip ? flipCardHTML(S.round.target,{mode:"hidden"}) : cardHTML(S.round.target,{mode:"hidden"});
+  const targetOpts = {mode:"hidden", extraClass:"is-target"};
+  const targetCard = flip ? flipCardHTML(S.round.target, targetOpts) : cardHTML(S.round.target, targetOpts);
   app.innerHTML=`<div class="table">
     ${roundBarHTML()}
     <div class="board">
