@@ -92,6 +92,7 @@
   }
 
   // Enregistre la carte jouée par le joueur courant. Renvoie "next" (au suivant) ou "resolve".
+  // (mode hotseat : les joueurs jouent l'un après l'autre sur le même appareil)
   function playCard(G, cardId) {
     const r = G.round, p = r.current;
     r.plays[p] = cardId;
@@ -100,6 +101,20 @@
     if (next < G.config.nbPlayers) { r.current = next; return "next"; }
     return "resolve";
   }
+
+  // Enregistre la carte d'un joueur donné (mode réseau : jeu simultané et secret).
+  // Renvoie { ok, allPlayed, error }. On ne peut jouer qu'un événement, une seule fois.
+  function submitPlayBy(G, playerIndex, cardId) {
+    const r = G.round;
+    if (!r || r.plays[playerIndex] != null) return { ok: false, error: "Déjà joué." };
+    if (isSpecial(cardId)) return { ok: false, error: "Carte spéciale non jouable." };
+    const h = G.hands[playerIndex]; const i = h.indexOf(cardId);
+    if (i < 0) return { ok: false, error: "Carte absente de ta main." };
+    h.splice(i, 1);
+    r.plays[playerIndex] = cardId;
+    return { ok: true, allPlayed: r.plays.every(x => x != null) };
+  }
+  function allPlayed(G) { return !!(G.round && G.round.plays.every(x => x != null)); }
 
   /* ------------------------- Résolution d'une manche ---------------------- */
   // plays: [{player, id}] ; renvoie {scored[], winners[]}
@@ -192,7 +207,7 @@
     shuffle,
     // cycle de partie
     newGame, canStartRound, drawTarget, startNextRound, playCard,
-    resolveRound, resolve, standings, scoreModeOf,
+    submitPlayBy, allPlayed, resolveRound, resolve, standings, scoreModeOf,
     // cartes spéciales
     drawReplacement, consumeSpecial, setDecalage, setDouble, swapCard
   };

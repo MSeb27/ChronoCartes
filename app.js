@@ -175,7 +175,7 @@ function initMuteBtn(){
 
 /* -------------------------------- Réseau --------------------------------- */
 const NET = {
-  socket:null, code:null, youId:null, lobby:null, pendingCode:null,
+  socket:null, code:null, youId:null, lobby:null, game:null, pendingCode:null,
   me:{ name:"Joueur", avatar:"av01" },
   loadIo(){
     return new Promise((res,rej)=>{
@@ -190,14 +190,28 @@ const NET = {
     if(this.socket && this.socket.connected) return;
     if(!this.socket){
       this.socket = io();
-      this.socket.on("lobby", st=>{ this.lobby=st; if(this.code) renderLobby(); });
+      this.socket.on("lobby", st=>{        // (re)venir au salon
+        this.lobby=st; this.game=null;
+        if(this.code){ renderLobby(); if(st.notice) toast(st.notice); }
+      });
+      this.socket.on("game", view=>{       // état de partie personnel (main cachée)
+        this.game=view; if(this.code) renderNetGame();
+      });
     }
   },
   create(cb){ this.socket.emit("createRoom", this.me, cb); },
   join(code, cb){ this.socket.emit("joinRoom", { code, ...this.me }, cb); },
   updateMe(){ if(this.socket) this.socket.emit("updateMe", this.me); },
   setConfig(c){ if(this.socket) this.socket.emit("setConfig", c); },
-  leave(){ if(this.socket) this.socket.emit("leaveRoom"); this.code=null; this.lobby=null; }
+  leave(){ if(this.socket) this.socket.emit("leaveRoom"); this.code=null; this.lobby=null; this.game=null; },
+  // actions de partie
+  start(cb){ this.socket.emit("startNet", {}, cb); },
+  play(cardId, cb){ this.socket.emit("netPlay", { cardId }, cb); },
+  special(spId, choice, cb){ this.socket.emit("netSpecial", { spId, choice }, cb); },
+  reject(spId, cb){ this.socket.emit("netReject", { spId }, cb); },
+  next(cb){ this.socket.emit("netNext", {}, cb); },
+  toLobby(cb){ this.socket.emit("netToLobby", {}, cb); },
+  restart(cb){ this.socket.emit("netRestart", {}, cb); }
 };
 
 /* --------------------------- Rendu d'une carte --------------------------- */
@@ -346,7 +360,261 @@ function renderLobby(){
     else toast(joinUrl);
   };
   app.querySelector("#leaveLobby").onclick=()=>{ NET.leave(); renderSplash(); };
-  const sb=app.querySelector("#startNet"); if(sb) sb.onclick=()=>toast("Partie en réseau : bientôt 🙂");
+  const sb=app.querySelector("#startNet");
+  if(sb) sb.onclick=()=>{
+    if(st.players.length<2){ toast("Il faut au moins 2 joueurs."); return; }
+    sb.disabled=true; sb.textContent="Distribution…";
+    NET.start(res=>{ if(!(res&&res.ok)){ sb.disabled=false; sb.textContent="Commencer la partie"; toast((res&&res.error)||"Erreur."); } });
+  };
+}
+
+/* --------------------------- Partie en réseau ---------------------------- */
+// Rendu piloté par la vue personnelle reçue du serveur (NET.game). Main cachée :
+// on n'affiche jamais que sa propre main ; l'année de la cible reste secrète.
+function renderNetGame(){
+  const v=NET.game; if(!v) return;
+  if(v.phase==="play")   return renderNetPlay(v);
+  if(v.phase==="reveal") return renderNetReveal(v);
+  if(v.phase==="over")   return renderNetGameOver(v);
+}
+
+function netRoundBar(v){
+  const total=v.rounds>0?`/${v.rounds}`:"";
+  return `<div class="roundbar">
+    <span class="chip">Manche <b>${v.roundNo}${total}</b></span>
+    <span class="chip">Talon <b>${v.deckCount}</b></span>
+  </div>`;
+}
+// bandeau « qui a joué » (pastilles ; coche quand la carte est posée)
+function netPlayersStrip(v){
+  return `<div class="net-players">${v.players.map((p,i)=>`
+    <div class="np ${p.played?'done':''} ${i===v.youIndex?'you':''}">
+      <span class="avatar-ic" style="--pc:${pColor(i)}"><img src="assets/avatars/${p.avatar}.webp" alt="" onerror="this.style.visibility='hidden'"></span>
+      <span class="np-nm">${esc(p.name)}${i===v.youIndex?" (toi)":""}</span>
+      <span class="np-tick">${p.played?"✅":"⏳"}</span>
+    </div>`).join("")}</div>`;
+}
+
+function renderNetPlay(v){
+  const you=v.you;
+  // résoudre d'abord une éventuelle carte spéciale de ta main
+  const sp=you.hand.find(isSpecial);
+  if(sp) return renderNetSpecial(v, sp);
+  if(you.played) return renderNetWait(v);   // tu as déjà joué → écran d'attente
+
+  const dec=you.decalage||0;
+  const targetCard=cardHTML(v.target.id,{mode:"hidden",extraClass:"is-target"});
+  app.innerHTML=`<div class="table">
+    ${netRoundBar(v)}
+    <div class="board">
+      <div class="deck">
+        <div class="backcard"></div><div class="backcard"></div>
+        <div class="top">${targetCard}</div>
+      </div>
+      <div class="cible">
+        <span class="cible-lbl">Carte-cible</span>
+        <div class="cible-title">${esc(EVENTS[v.target.id].titre)}</div>
+        ${you.targetYear!=null?`<div class="voyance-peek">👁️ ${fmtYear(you.targetYear)}</div>`:``}
+      </div>
+    </div>
+    <div class="handzone">
+      ${dec?`<div class="dec-banner">⏳ Décalage actif : ${dec>0?'+':''}${dec} ans sur ta carte</div>`:``}
+      ${you.dbl?`<div class="dec-banner">✖️ Manche doublée pour toi</div>`:``}
+      <div class="hand" id="hand">${you.hand.map(id=>cardHTML(id,{mode:"hidden"})).join("")}</div>
+    </div>
+    <div class="footer-actions" style="flex-direction:column;gap:8px">
+      ${dec?`<div class="dec-note" id="decNote">Choisis ta carte pour voir l'effet du décalage</div>`:``}
+      <button class="btn" id="valider" disabled>Valider mon choix</button>
+    </div>
+  </div>`;
+  let selected=null;
+  const handEl=app.querySelector("#hand");
+  handEl.onclick=(e)=>{
+    const card=e.target.closest(".card"); if(!card)return;
+    handEl.querySelectorAll(".card").forEach(c=>c.classList.remove("sel"));
+    card.classList.add("sel"); selected=card.dataset.id;
+    app.querySelector("#valider").disabled=false;
+    if(dec){ const eff=EVENTS[selected].year+dec;
+      document.getElementById("decNote").textContent=`Ta carte comptera : ${fmtYear(eff)}  (${dec>0?'+':''}${dec} ans)`; }
+  };
+  app.querySelector("#valider").onclick=()=>{
+    if(!selected) return;
+    const btn=app.querySelector("#valider"); btn.disabled=true; btn.textContent="Envoi…";
+    NET.play(selected, res=>{ if(!(res&&res.ok)){ btn.disabled=false; btn.textContent="Valider mon choix"; toast((res&&res.error)||"Erreur."); } });
+  };
+}
+
+// carte spéciale (réseau) — résolue en privé sur ton appareil
+function renderNetSpecial(v, spId){
+  const s=SPECIALS[spId];
+  app.innerHTML=`<div class="table">
+    ${netRoundBar(v)}
+    <div class="special">
+      <div class="sp-hint">Ta carte spéciale</div>
+      <div class="sp-card">${specialCardHTML(spId)}</div>
+      <div class="sp-name">${s.icon} ${esc(s.nom)}</div>
+      <div class="sp-desc">${esc(s.desc)}</div>
+      <div class="sp-actions" id="spActions">
+        <button class="btn" id="spUse">Utiliser</button>
+        <button class="btn secondary" id="spReject">Rejeter</button>
+      </div>
+    </div>
+  </div>`;
+  app.querySelector("#spReject").onclick=()=>NET.reject(spId);
+  app.querySelector("#spUse").onclick=()=>{
+    const box=app.querySelector("#spActions");
+    if(spId==="sp_voyance" || spId==="sp_double"){
+      NET.special(spId, null);
+    } else if(spId==="sp_decalage"){
+      box.innerHTML=`<div class="sp-q">Ta carte comptera&nbsp;:</div>
+        <div class="btn-row"><button class="btn" data-d="-10">−10 ans</button><button class="btn" data-d="10">+10 ans</button></div>`;
+      box.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>NET.special(spId, +b.dataset.d));
+    } else if(spId==="sp_echange"){
+      const evs=v.you.hand.filter(id=>!isSpecial(id));
+      box.innerHTML=`<div class="sp-q">🔄 Touche la carte à remplacer par le dessus du talon</div>
+        <div class="hand" id="swapHand">${evs.map(id=>cardHTML(id,{mode:"hidden"})).join("")}</div>
+        <button class="btn secondary" id="swapKeep" style="margin-top:8px">Garder mes cartes</button>`;
+      app.querySelector("#swapHand").onclick=(e)=>{ const c=e.target.closest(".card"); if(c) NET.special(spId, c.dataset.id); };
+      app.querySelector("#swapKeep").onclick=()=>NET.special(spId, null);
+    }
+  };
+}
+
+// écran d'attente : tu as joué, on patiente que les autres valident
+function renderNetWait(v){
+  app.innerHTML=`<div class="table">
+    ${netRoundBar(v)}
+    <div class="pass">
+      <div class="net-wait-ic">⏳</div>
+      <div class="who">Carte jouée&nbsp;!</div>
+      <div class="instr">On attend les autres joueurs…</div>
+    </div>
+    ${netPlayersStrip(v)}
+  </div>`;
+}
+
+function renderNetReveal(v){
+  const res=v.result, mode=v.scoreMode;
+  const names=v.players.map(p=>p.name);
+  const rows=res.scored.map((s,rankIdx)=>{
+    const isWin=res.winners.some(w=>w.player===s.player) && !res.split;
+    const isSplit=res.split && res.winners.some(w=>w.player===s.player);
+    const medal=isWin?"🥇":(isSplit?"🤝":"");
+    const sideTxt=s.eff===res.targetYear?"pile dessus":(s.before?"avant":"après");
+    const decTag=s.dec?` <span class="dec-tag">${s.dec>0?'+':''}${s.dec}</span>`:'';
+    const ptsTag=(mode==="points"&&s.pts!=null)?` <span class="pts-tag">+${s.pts}</span>`:'';
+    return `<div class="res-row ${isWin||isSplit?'winner':''}" style="animation-delay:${rankIdx*90}ms">
+      <div class="mini">${cardHTML(s.id,{mode:"reveal"})}</div>
+      <div class="info">
+        <div class="pname">${avatarNetDot(v,s.player)}${esc(names[s.player])} <span class="medal">${medal}</span>${ptsTag}</div>
+        <div class="ptitle">${esc(EVENTS[s.id].titre)} — ${fmtYear(s.year)}${decTag}</div>
+        <a class="wiki-link" href="${wikiUrl(s.id)}" target="_blank" rel="noopener noreferrer">📖 Wikipédia</a>
+      </div>
+      <div class="gap">${s.gap}<small>${sideTxt}</small></div>
+    </div>`;
+  });
+  let verdict;
+  if(res.split){ verdict=`Égalité entre ${res.winners.map(w=>esc(names[w.player])).join(" & ")}.`; }
+  else{ const w=res.winners[0], ws=res.scored.find(s=>s.player===w.player);
+    verdict = mode==="carte"?`${esc(names[w.player])} remporte la carte&nbsp;!`
+            : mode==="precision"?`${esc(names[w.player])} est au plus près (${w.gap} ans).`
+            :`${esc(names[w.player])} remporte la manche (+${(ws&&ws.pts)||0} pts)&nbsp;!`; }
+  const isHost=v.hostId===NET.youId;
+  app.innerHTML=`<div class="table">
+    ${netRoundBar(v)}
+    <div class="reveal">
+      <div class="headline">
+        <div>La carte-cible était <b>${esc(EVENTS[v.target.id].titre)}</b></div>
+        <div class="target-year">${fmtYear(res.targetYear)}</div>
+        <div class="muted" style="color:#e9dcc0;margin-top:4px">${verdict}</div>
+      </div>
+      <div class="results">${rows.join("")}</div>
+      <div class="scoreboard">
+        <div class="sb-title">Classement</div>
+        <div class="sb-list">${v.standings.map((i,rk)=>netSbRow(v,i,rk)).join("")}</div>
+      </div>
+      <div class="footer-actions">
+        ${isHost
+          ? `<button class="btn" id="netNext">${v.canNext?"Manche suivante":"Voir le résultat final"}</button>`
+          : `<div class="hint center" style="color:#e9dcc0">En attente de l'hôte…</div>`}
+      </div>
+    </div>
+  </div>`;
+  const nb=app.querySelector("#netNext");
+  if(nb) nb.onclick=()=>{ nb.disabled=true; NET.next(); };
+}
+
+function renderNetGameOver(v){
+  const order=v.standings, champ=order[0], names=v.players.map(p=>p.name);
+  const medals=["🥇","🥈","🥉"];
+  const nm=i=>esc(names[i]);
+  const scoreOf=i=>netScoreLabel(v,i);
+  const tiedTop=order.filter(i=>scoreOf(i)===scoreOf(champ)).length>1;
+  const top=order.slice(0,3);
+  const visual=[1,0,2].filter(i=>i<top.length);
+  const cols=visual.map(i=>{ const pl=top[i];
+    return `<div class="podium-col rank${i+1}">
+      <div class="podium-avatar" style="--pc:${pColor(pl)}"><img src="assets/avatars/${v.players[pl].avatar}.webp" alt="" onerror="this.remove()"></div>
+      <div class="podium-name">${nm(pl)}</div>
+      <div class="podium-pedestal"><span class="medal">${medals[i]}</span><span class="podium-score">${scoreOf(pl)}</span></div>
+    </div>`; }).join("");
+  const bp=v.bestPlay;
+  const bestHTML=bp?`<div class="go-bestplay">
+      <span class="bp-label">🎯 Meilleur coup</span>
+      <div class="bp-line">${avatarNetDot(v,bp.player)}<b>${nm(bp.player)}</b> — ${esc(EVENTS[bp.cardId].titre)}
+        à <b>${bp.gap} an${bp.gap>1?'s':''}</b> de «&nbsp;${esc(EVENTS[bp.targetId].titre)}&nbsp;»</div>
+    </div>`:"";
+  const isHost=v.hostId===NET.youId;
+  app.innerHTML=`<div class="table">
+    <div class="gameover">
+      <div class="go-confetti" id="confetti"></div>
+      <div class="go-hero">
+        <div class="go-crown">🏆</div>
+        <div class="go-champ-avatar" style="--pc:${pColor(champ)}"><img src="assets/avatars/${v.players[champ].avatar}.webp" alt="" onerror="this.remove()"></div>
+      </div>
+      <div class="go-champ-label">${tiedTop?"Égalité en tête&nbsp;!":"Champion&nbsp;!"}</div>
+      <div class="go-champ" style="color:${pColor(champ)}">${nm(champ)}</div>
+      <div class="podium">${cols}</div>
+      <div class="scoreboard" style="width:100%;max-width:420px">
+        <div class="sb-title">Classement final</div>
+        <div class="sb-list" style="max-height:22dvh">${order.map((i,rk)=>netSbRow(v,i,rk)).join("")}</div>
+      </div>
+      ${bestHTML}
+      <div class="btn-row" style="width:100%;max-width:420px">
+        ${isHost?`<button class="btn secondary" id="netAgain">Rejouer</button>`:``}
+        <button class="btn ghost" id="netMenu">${isHost?"Retour au salon":"Salon"}</button>
+      </div>
+    </div>
+  </div>`;
+  AUDIO.jingle("victory");
+  const conf=document.getElementById("confetti");
+  const cfCol=["#c0532b","#2e6d8a","#2f7d5c","#d0ad5e","#6b4a8a","#9b3b2f","#3f7d7d"];
+  for(let i=0;i<56;i++){ const s=document.createElement("span"); s.className="cf";
+    s.style.left=(Math.random()*100)+"%"; s.style.background=cfCol[i%cfCol.length];
+    s.style.animationDelay=(Math.random()*(i<28?0.4:1.6))+"s";
+    s.style.animationDuration=(2.3+Math.random()*2)+"s";
+    s.style.width=(6+Math.random()*7)+"px"; conf.appendChild(s); }
+  const ag=app.querySelector("#netAgain"); if(ag) ag.onclick=()=>{ ag.disabled=true; NET.restart(); };
+  const mn=app.querySelector("#netMenu"); if(mn) mn.onclick=()=>{ if(isHost) NET.toLobby(); else toast("En attente de l'hôte…"); };
+}
+
+// pastille avatar (réseau) à partir de la vue
+function avatarNetDot(v,i){
+  return `<span class="avatar-ic" style="--pc:${pColor(i)}"><img src="assets/avatars/${v.players[i].avatar}.webp" alt="" onerror="this.style.visibility='hidden'"></span>`;
+}
+function netScoreLabel(v,i){
+  const p=v.players[i];
+  if(v.scoreMode==="carte")     return `${p.cards} 🃏`;
+  if(v.scoreMode==="precision") return `${p.malus} ans`;
+  return `${p.points} pts`;
+}
+function netSbRow(v,i,rk){
+  return `<div class="sb-row">
+    <span class="rank">${rk+1}</span>
+    ${avatarNetDot(v,i)}
+    <span class="nm">${esc(v.players[i].name)}</span>
+    <span class="sc">${netScoreLabel(v,i)}</span>
+  </div>`;
 }
 
 function renderSetup(){

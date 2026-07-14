@@ -426,3 +426,14 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
   color:var(--parch-1);font-size:13px;letter-spacing:1px;opacity:.7}
 @keyframes zoomIn{from{opacity:0}to{opacity:1}}
 @keyframes zoomPop{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:scale(1)}}
+
+/* ------------------------- Partie en réseau (Phase 3) ------------------- */
+.net-players{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+.net-players .np{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;
+  background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.10);color:var(--parch-1);font-size:13px}
+.net-players .np.you{border-color:rgba(208,173,94,.6)}
+.net-players .np.done{background:rgba(47,125,92,.32)}
+.net-players .np-nm{max-width:26vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.net-wait-ic{font-size:44px;animation:hourglass 1.6s ease-in-out infinite}
+@keyframes hourglass{0%,100%{transform:rotate(0)}50%{transform:rotate(180deg)}}
+.voyance-peek{margin-top:4px;font-weight:800;color:#d0ad5e;text-shadow:0 1px 3px rgba(0,0,0,.6)}
