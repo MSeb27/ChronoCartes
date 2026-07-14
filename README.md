@@ -1,4 +1,4 @@
-# ChronoCartes 🕰️🃏
+# Tempora — Le Juste Temps 🕰️🃏
 
 Jeu de cartes chronologique, jouable **chacun sur son téléphone**.
 

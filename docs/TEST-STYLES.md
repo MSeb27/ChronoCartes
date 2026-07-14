@@ -1,4 +1,4 @@
-# ChronoCartes — Tests de styles (9 références × 2 événements)
+# Tempora — Tests de styles (9 références × 2 événements)
 
 But : t'aider à **choisir le style du paquet**. J'ai analysé tes 9 images de référence
 (`C:\Users\SEG\Projets\Seb\Game\Reference\style1..9`) et j'en ai extrait **la technique / le

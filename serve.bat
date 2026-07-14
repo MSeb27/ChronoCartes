@@ -10,7 +10,7 @@ set "LANIP="
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "$ip=(Get-NetIPAddress -AddressFamily IPv4 ^| ?{$_.InterfaceAlias -like '*Wi-Fi*' -and $_.IPAddress -notlike '169.*'} ^| select -First 1 -Expand IPAddress); if(-not $ip){$ip=(Get-NetIPAddress -AddressFamily IPv4 ^| ?{$_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.*'} ^| select -First 1 -Expand IPAddress)}; $ip"`) do set "LANIP=%%i"
 
 echo ============================================
-echo   ChronoCartes - serveur local
+echo   Tempora - Le Juste Temps - serveur local
 echo ============================================
 echo   Sur ce PC      : http://localhost:8935
 if defined LANIP (

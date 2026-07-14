@@ -1,4 +1,4 @@
-# ChronoCartes — Règles du jeu
+# Tempora — Règles du jeu
 
 > **Résumé** : chaque carte est un événement historique dont **l'année est cachée**.
 > Une carte-cible est retournée du talon ; chacun pose secrètement la carte de sa main

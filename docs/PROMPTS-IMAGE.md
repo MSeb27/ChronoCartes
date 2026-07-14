@@ -1,4 +1,4 @@
-# ChronoCartes — Prompts & production des images
+# Tempora — Prompts & production des images
 
 Ce document contient : le **style maître** (crayon fin colorié), la **recommandation de taille**,
 la **méthode de production** d'un paquet cohérent, et les **pièges** à éviter.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Optimise les illustrations de cartes ChronoCartes.
+Optimise les illustrations de cartes Tempora.
 
 Pour chaque evenement (id lu dans data/evenements.json), cherche une image source
 nommee <id>.(png|jpg|jpeg|webp) dans  assets/_src/  puis  assets/  (racine),

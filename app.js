@@ -1,5 +1,5 @@
 /* ============================================================================
-   ChronoCartes — prototype hotseat (1 seul appareil, on se passe le téléphone)
+   Tempora — Le Juste Temps — prototype hotseat (1 seul appareil, on se passe le téléphone)
    Vanilla JS, machine à états. Les années sont cachées jusqu'à la révélation.
    ========================================================================== */
 "use strict";
@@ -217,8 +217,8 @@ function renderSplash(){
   app.innerHTML = `
   <div class="splash">
     <div class="brand splash-top">
-      <span class="big">ChronoCartes</span>
-      <span class="sub">place l'histoire dans le temps</span>
+      <span class="big">Tempora</span>
+      <span class="sub">Le Juste Temps</span>
     </div>
     <div class="splash-bottom">
       <button class="btn" id="play">Jouer</button>
@@ -236,8 +236,8 @@ function renderSetup(){
     <div class="fan" aria-hidden="true">
       <span class="fan-card"></span><span class="fan-card"></span><span class="fan-card"></span><span class="fan-card"></span><span class="fan-card"></span>
     </div>
-    <span class="big">ChronoCartes</span>
-    <span class="sub">place l'histoire dans le temps</span>
+    <span class="big">Tempora</span>
+    <span class="sub">Le Juste Temps</span>
   </div>
   <div class="setup">
     <div class="panel">

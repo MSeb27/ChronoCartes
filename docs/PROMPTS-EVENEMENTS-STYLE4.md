@@ -1,4 +1,4 @@
-# ChronoCartes — Prompts des 65 événements (Style 4)
+# Tempora — Prompts des 65 événements (Style 4)
 
 Style **croquis graphite + couleur sélective** (ton choix), un prompt prêt à copier par événement.
 

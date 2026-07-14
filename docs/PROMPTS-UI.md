@@ -1,4 +1,4 @@
-# ChronoCartes — Prompts des visuels d'interface
+# Tempora — Prompts des visuels d'interface
 
 Prompts pour les **assets d'habillage** (hors cartes-événements) : fond de table, dos de carte,
 animation de flip, écran d'accueil. Même logique que [`PROMPTS-IMAGE.md`](PROMPTS-IMAGE.md) :
@@ -107,7 +107,7 @@ background, subtle glossy highlight for a card surface. --ar 2:3
 ## 4. Écran d'accueil plus travaillé — `assets/home.png` (9:16)
 
 Illustration plein écran derrière le titre. **Haut de l'image plus sombre/dégagé** pour poser
-« ChronoCartes ».
+« Tempora ».
 ```
 Vertical splash illustration for a history card game: a grand ornate hourglass (or antique clock)
 glowing at the center, surrounded by a swirling collage of iconic historical scenes floating like

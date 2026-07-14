@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "Paquet d'événements ChronoCartes. year: entier, négatif = avant J.-C. L'appli formate l'affichage (ex. -776 -> '776 av. J.-C.'). Le champ 'scene' sert d'amorce pour la génération d'images (voir docs/PROMPTS-IMAGE.md). L'année ne doit JAMAIS être gravée dans l'illustration.",
+    "description": "Paquet d'événements Tempora (Le Juste Temps). year: entier, négatif = avant J.-C. L'appli formate l'affichage (ex. -776 -> '776 av. J.-C.'). Le champ 'scene' sert d'amorce pour la génération d'images (voir docs/PROMPTS-IMAGE.md). L'année ne doit JAMAIS être gravée dans l'illustration.",
     "version": 1,
     "count": 69
   },
