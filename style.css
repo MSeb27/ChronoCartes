@@ -374,6 +374,15 @@ h1,h2,h3{margin:0;font-weight:800;letter-spacing:.5px}
   border:1px solid rgba(208,173,94,.45);background:rgba(20,12,4,.5);color:var(--parch-1);font-size:17px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
 #muteBtn:active{transform:scale(.92)}
+/* écran lobby réseau */
+.lobby{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  color:var(--parch-1);text-align:center;padding:8px}
+.lobby>*{width:100%;max-width:360px}
+.lobby-code{font-size:13px;color:#e9dcc0;letter-spacing:1px}
+.lobby-code b{font-family:var(--serif);font-size:46px;letter-spacing:8px;color:var(--gold);display:inline-block;margin-top:3px;
+  text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.lobby-players{background:rgba(0,0,0,.28);border-radius:12px;padding:10px 12px;border:1px solid rgba(208,173,94,.2)}
+.lobby-players .sb-title{margin-bottom:8px}
 #toast{position:fixed;left:50%;bottom:calc(18px + var(--safe-b));transform:translateX(-50%) translateY(20px);
   background:rgba(20,12,4,.92);color:var(--parch-1);padding:10px 16px;border-radius:999px;
   font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:50;border:1px solid var(--gold)}

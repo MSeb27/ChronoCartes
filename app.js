@@ -28,22 +28,26 @@ const avatarSrc = i => "assets/avatars/"+((S.config.avatars&&S.config.avatars[i]
 function avatarDotHTML(i){
   return `<span class="avatar-ic" style="--pc:${pColor(i)}"><img src="${avatarSrc(i)}" alt="" onerror="this.style.visibility='hidden'"></span>`;
 }
-// sélecteur d'avatar plein écran pour le joueur pi
-function openAvatarPicker(pi){
+// sélecteur d'avatar plein écran (générique)
+function pickAvatar(current, onPick){
   const ov=document.createElement("div"); ov.className="avatar-picker";
   ov.innerHTML=`<div class="ap-panel">
     <div class="ap-title">Choisis ton icône</div>
-    <div class="ap-grid">${AVATARS.map(a=>`<button class="ap-ic ${S.config.avatars[pi]===a?'on':''}" data-a="${a}"><img src="assets/avatars/${a}.webp" alt="" onerror="this.remove()"></button>`).join("")}</div>
+    <div class="ap-grid">${AVATARS.map(a=>`<button class="ap-ic ${current===a?'on':''}" data-a="${a}"><img src="assets/avatars/${a}.webp" alt="" onerror="this.remove()"></button>`).join("")}</div>
   </div>`;
   ov.addEventListener("click", e=>{
     if(e.target===ov){ ov.remove(); return; }
     const b=e.target.closest(".ap-ic"); if(!b) return;
-    S.config.avatars[pi]=b.dataset.a;
-    const img=document.querySelector(`.pl-avatar[data-pi="${pi}"] img`);
-    if(img) img.src="assets/avatars/"+b.dataset.a+".webp";
-    ov.remove();
+    onPick(b.dataset.a); ov.remove();
   });
   document.body.appendChild(ov);
+}
+function openAvatarPicker(pi){
+  pickAvatar(S.config.avatars[pi], a=>{
+    S.config.avatars[pi]=a;
+    const img=document.querySelector(`.pl-avatar[data-pi="${pi}"] img`);
+    if(img) img.src="assets/avatars/"+a+".webp";
+  });
 }
 
 // article Wikipédia (fr) par événement — pour le lien sur les cartouches de résultat
@@ -179,6 +183,33 @@ function initMuteBtn(){
   document.body.appendChild(b); updateMuteBtn();
 }
 
+/* -------------------------------- Réseau --------------------------------- */
+const NET = {
+  socket:null, code:null, youId:null, lobby:null, pendingCode:null,
+  me:{ name:"Joueur", avatar:"av01" },
+  loadIo(){
+    return new Promise((res,rej)=>{
+      if(typeof io==="function") return res();
+      const s=document.createElement("script"); s.src="/socket.io/socket.io.js";
+      s.onload=()=>res(); s.onerror=()=>rej(new Error("socket.io indisponible"));
+      document.head.appendChild(s);
+    });
+  },
+  async connect(){
+    await this.loadIo();
+    if(this.socket && this.socket.connected) return;
+    if(!this.socket){
+      this.socket = io();
+      this.socket.on("lobby", st=>{ this.lobby=st; if(this.code) renderLobby(); });
+    }
+  },
+  create(cb){ this.socket.emit("createRoom", this.me, cb); },
+  join(code, cb){ this.socket.emit("joinRoom", { code, ...this.me }, cb); },
+  updateMe(){ if(this.socket) this.socket.emit("updateMe", this.me); },
+  setConfig(c){ if(this.socket) this.socket.emit("setConfig", c); },
+  leave(){ if(this.socket) this.socket.emit("leaveRoom"); this.code=null; this.lobby=null; }
+};
+
 /* --------------------------- Rendu d'une carte --------------------------- */
 // mode: "hidden" (année masquée) | "reveal" (année affichée) | "back" (dos)
 function cardHTML(id, {mode="hidden", extraClass=""}={}){
@@ -264,11 +295,93 @@ function renderSplash(){
       <span class="sub">Le Juste Temps</span>
     </div>
     <div class="splash-bottom">
-      <button class="btn" id="play">Jouer</button>
-      <div class="hint center" style="color:#e9dcc0;margin-top:10px">${ALL_IDS.length} événements · 1 à 8 joueurs · sur un seul appareil</div>
+      <button class="btn" id="playLocal">Jouer en local</button>
+      <button class="btn secondary" id="playOnline" style="margin-top:9px">Jouer en ligne</button>
+      <div class="hint center" style="color:#e9dcc0;margin-top:12px">${ALL_IDS.length} événements · 1 à 8 joueurs</div>
     </div>
   </div>`;
-  app.querySelector("#play").onclick = () => { AUDIO.startBgm(); renderSetup(); };
+  app.querySelector("#playLocal").onclick = () => { AUDIO.startBgm(); renderSetup(); };
+  app.querySelector("#playOnline").onclick = () => { AUDIO.startBgm(); renderOnline(); };
+}
+
+/* --------------------------- Écrans réseau ------------------------------- */
+function renderOnline(){
+  app.innerHTML = `
+  <div class="brand" style="margin:4px 0 12px"><span class="big" style="font-size:clamp(30px,9vw,44px)">Tempora</span><span class="sub">En ligne</span></div>
+  <div class="setup">
+    <div class="panel">
+      <div class="field">
+        <label>Ton pseudo & ton icône</label>
+        <div class="pl-row">
+          <button class="pl-avatar" id="onAvatar" style="--pc:${pColor(0)}"><img src="assets/avatars/${NET.me.avatar}.webp" alt="" onerror="this.remove()"></button>
+          <input id="onName" value="${esc(NET.me.name)}" maxlength="16" placeholder="Ton pseudo">
+        </div>
+      </div>
+    </div>
+    <button class="btn" id="btnCreate">➕ Créer un salon</button>
+    <div class="panel">
+      <div class="field">
+        <label>Rejoindre un salon</label>
+        <div class="pl-row">
+          <input id="onCode" maxlength="4" placeholder="CODE" style="text-transform:uppercase;letter-spacing:4px;font-weight:800;text-align:center" value="${esc(NET.pendingCode||"")}">
+          <button class="btn" id="btnJoin" style="width:auto;flex:0 0 auto;padding:12px 18px">Rejoindre</button>
+        </div>
+        <div class="hint" id="onError" style="color:#e79">&nbsp;</div>
+      </div>
+    </div>
+    <button class="btn ghost" id="onBack">← Retour</button>
+  </div>`;
+  NET.pendingCode=null;
+  const nameInp=app.querySelector("#onName");
+  nameInp.oninput=()=>{ NET.me.name=nameInp.value; };
+  app.querySelector("#onAvatar").onclick=()=>pickAvatar(NET.me.avatar, a=>{ NET.me.avatar=a; const im=app.querySelector("#onAvatar img"); if(im) im.src="assets/avatars/"+a+".webp"; });
+  app.querySelector("#onBack").onclick=()=>renderSplash();
+  const showErr=m=>{ const e=app.querySelector("#onError"); if(e) e.textContent=m; };
+  const go=(action)=>async()=>{
+    NET.me.name=(nameInp.value||"").trim()||"Joueur";
+    showErr("Connexion…");
+    try{ await NET.connect(); }catch(e){ showErr("Serveur réseau indisponible."); return; }
+    action();
+  };
+  app.querySelector("#btnCreate").onclick=go(()=>{
+    NET.create(res=>{ if(res&&res.ok){ NET.code=res.code; NET.youId=res.youId; renderLobby(); } else showErr((res&&res.error)||"Erreur."); });
+  });
+  app.querySelector("#btnJoin").onclick=go(()=>{
+    const code=(app.querySelector("#onCode").value||"").toUpperCase().trim();
+    if(code.length<4){ showErr("Entre le code à 4 lettres."); return; }
+    NET.join(code, res=>{ if(res&&res.ok){ NET.code=res.code; NET.youId=res.youId; renderLobby(); } else showErr((res&&res.error)||"Erreur."); });
+  });
+}
+
+function renderLobby(){
+  const st=NET.lobby; if(!st) return;
+  const isHost = st.hostId===NET.youId;
+  const joinUrl = location.origin + "/?join=" + st.code;
+  app.innerHTML=`<div class="table">
+    <div class="lobby">
+      <div class="lobby-code">Code du salon<br><b>${st.code}</b></div>
+      <button class="btn secondary" id="shareLink">📋 Copier le lien d'invitation</button>
+      <div class="lobby-players">
+        <div class="sb-title">Joueurs (${st.players.length}/8)</div>
+        <div class="sb-list" style="max-height:34dvh">
+          ${st.players.map((p,idx)=>`<div class="sb-row">
+            <span class="avatar-ic" style="--pc:${pColor(idx)}"><img src="assets/avatars/${p.avatar}.webp" alt="" onerror="this.style.visibility='hidden'"></span>
+            <span class="nm">${esc(p.name)}${p.isHost?" 👑":""}${p.id===NET.youId?" (toi)":""}</span>
+          </div>`).join("")}
+        </div>
+      </div>
+      ${isHost
+        ? `<button class="btn" id="startNet">Commencer la partie</button>`
+        : `<div class="hint center" style="color:#e9dcc0">En attente de l'hôte…</div>`}
+      <button class="btn ghost" id="leaveLobby">Quitter le salon</button>
+    </div>
+  </div>`;
+  app.querySelector("#shareLink").onclick=()=>{
+    if(navigator.clipboard) navigator.clipboard.writeText(joinUrl).then(()=>toast("Lien copié !")).catch(()=>toast(joinUrl));
+    else toast(joinUrl);
+  };
+  app.querySelector("#leaveLobby").onclick=()=>{ NET.leave(); renderSplash(); };
+  const sb=app.querySelector("#startNet"); if(sb) sb.onclick=()=>toast("Partie en réseau : bientôt 🙂");
 }
 
 function renderSetup(){
@@ -775,7 +888,8 @@ async function boot(){
     ALL_IDS=data.evenements.map(e=>e.id);
     attachCardTooltip();
     initMuteBtn();
-    renderSplash();
+    const joinCode=(new URLSearchParams(location.search).get("join")||"").toUpperCase();
+    if(joinCode){ NET.pendingCode=joinCode; renderOnline(); } else renderSplash();
   }catch(err){
     app.innerHTML=`<div class="loading">Erreur de chargement des événements.<br>${esc(err.message)}</div>`;
     console.error(err);
