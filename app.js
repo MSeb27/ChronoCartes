@@ -401,6 +401,7 @@ function startGame(){
     cards:c.names.map(()=>[]),   // cartes remportées (mode carte)
     malus:c.names.map(()=>0),    // malus cumulé (mode précision)
     points:c.names.map(()=>0),   // points cumulés (mode points)
+    bestPlay:null,               // meilleur coup de la partie (plus petit écart)
     roundNo:0,
     phase:null, round:null
   };
@@ -457,8 +458,12 @@ function resolveAndShow(){
   const plays=r.plays.map((id,player)=>({player,id}));
   const {scored,winners}=resolveRound(targetYear,plays);
   const dbl = p => r.dbl[p] ? 2 : 1;   // Double : ×2 pour ce joueur
-  // malus (mode précision)
-  scored.forEach(s=>{ S.malus[s.player]+= s.gap * dbl(s.player); });
+  // malus (mode précision) + meilleur coup de la partie (plus petit écart)
+  scored.forEach(s=>{
+    S.malus[s.player]+= s.gap * dbl(s.player);
+    if(!S.bestPlay || s.gap < S.bestPlay.gap)
+      S.bestPlay = { player:s.player, gap:s.gap, cardId:s.id, targetId:r.target, round:S.roundNo };
+  });
   // carte remportée (mode carte)
   let awarded=null;
   if(winners.length===1){
@@ -696,11 +701,14 @@ function renderGameOver(){
   const solo = S.config.nbPlayers===1;
   const medals=["🥇","🥈","🥉"];
 
+  const nm = i => esc(S.config.names[i]);
+
   let hero;
   if(solo){
     hero=`<div class="go-crown">🏁</div>
+      <div class="go-champ-avatar" style="--pc:${pColor(0)}"><img src="${avatarSrc(0)}" alt="" onerror="this.remove()"></div>
       <div class="go-champ-label">Partie terminée</div>
-      <div class="go-champ" style="color:${pColor(0)}">${esc(S.config.names[0])}</div>
+      <div class="go-champ" style="color:${pColor(0)}">${nm(0)}</div>
       <div class="go-solo-score">${scoreLabel(0)}</div>`;
   }else{
     const top=order.slice(0,3);
@@ -709,15 +717,25 @@ function renderGameOver(){
       const pl=top[i];
       return `<div class="podium-col rank${i+1}">
         <div class="podium-avatar" style="--pc:${pColor(pl)}"><img src="${avatarSrc(pl)}" alt="" onerror="this.remove()"></div>
-        <div class="podium-name">${esc(S.config.names[pl])}</div>
+        <div class="podium-name">${nm(pl)}</div>
         <div class="podium-pedestal"><span class="medal">${medals[i]}</span><span class="podium-score">${scoreLabel(pl)}</span></div>
       </div>`;
     }).join("");
-    hero=`<div class="go-crown">🏆</div>
+    hero=`<div class="go-hero">
+        <div class="go-crown">🏆</div>
+        <div class="go-champ-avatar" style="--pc:${pColor(champ)}"><img src="${avatarSrc(champ)}" alt="" onerror="this.remove()"></div>
+      </div>
       <div class="go-champ-label">${tiedTop?"Égalité en tête&nbsp;!":"Champion&nbsp;!"}</div>
-      <div class="go-champ" style="color:${pColor(champ)}">${esc(S.config.names[champ])}</div>
+      <div class="go-champ" style="color:${pColor(champ)}">${nm(champ)}</div>
       <div class="podium">${cols}</div>`;
   }
+
+  const bp=S.bestPlay;
+  const bestHTML = bp ? `<div class="go-bestplay">
+      <span class="bp-label">🎯 Meilleur coup</span>
+      <div class="bp-line">${avatarDotHTML(bp.player)}<b>${nm(bp.player)}</b> — ${esc(EVENTS[bp.cardId].titre)}
+        à <b>${bp.gap} an${bp.gap>1?'s':''}</b> de «&nbsp;${esc(EVENTS[bp.targetId].titre)}&nbsp;»</div>
+    </div>` : "";
 
   app.innerHTML=`<div class="table">
     <div class="gameover">
@@ -725,8 +743,9 @@ function renderGameOver(){
       ${hero}
       ${solo?"":`<div class="scoreboard" style="width:100%;max-width:420px">
         <div class="sb-title">Classement final</div>
-        <div class="sb-list" style="max-height:24dvh">${order.map((i,rk)=>sbRowHTML(i,rk)).join("")}</div>
+        <div class="sb-list" style="max-height:22dvh">${order.map((i,rk)=>sbRowHTML(i,rk)).join("")}</div>
       </div>`}
+      ${bestHTML}
       <div class="btn-row" style="width:100%;max-width:420px">
         <button class="btn secondary" id="again">Rejouer (mêmes réglages)</button>
         <button class="btn ghost" id="menu">Menu</button>
@@ -734,13 +753,14 @@ function renderGameOver(){
     </div>
   </div>`;
   AUDIO.jingle("victory");   // fanfare de fin
-  // confettis
+  // confettis — salve dense au montage (synchro jingle) puis chute continue
   const conf=document.getElementById("confetti");
   const cfCol=["#c0532b","#2e6d8a","#2f7d5c","#d0ad5e","#6b4a8a","#9b3b2f","#3f7d7d"];
-  for(let i=0;i<40;i++){ const s=document.createElement("span"); s.className="cf";
+  for(let i=0;i<56;i++){ const s=document.createElement("span"); s.className="cf";
     s.style.left=(Math.random()*100)+"%"; s.style.background=cfCol[i%cfCol.length];
-    s.style.animationDelay=(Math.random()*2.2)+"s"; s.style.animationDuration=(2.6+Math.random()*2)+"s";
-    s.style.width=(6+Math.random()*6)+"px"; conf.appendChild(s); }
+    s.style.animationDelay=(Math.random()* (i<28?0.4:1.6))+"s";     // moitié en salve immédiate
+    s.style.animationDuration=(2.3+Math.random()*2)+"s";
+    s.style.width=(6+Math.random()*7)+"px"; conf.appendChild(s); }
   app.querySelector("#again").onclick=()=>{ startGame(); };
   app.querySelector("#menu").onclick=()=>{ renderSetup(); };
 }
