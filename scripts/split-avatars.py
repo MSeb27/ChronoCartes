@@ -12,14 +12,22 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC  = Path.home() / "Downloads" / "Planche icone joueur.png"
 OUT  = ROOT / "assets" / "avatars"
 COLS, ROWS, SIZE = 8, 5, 128
-THRESH = 205        # < ce niveau de gris = contenu (l'anneau du médaillon)
-PAD    = 1.06       # marge autour du médaillon détecté
+THRESH = 215        # < ce niveau de gris = contenu (l'anneau du médaillon)
+PAD    = 1.10       # marge autour du médaillon détecté
 
-def content_bbox(cell):
-    """bbox du médaillon (contenu non-blanc) dans la case."""
+def medallion(cell):
+    """Centre + rayon du médaillon (cercle), robuste à l'ombre du bas et à la position de l'icône.
+       On prend la LARGEUR de la zone non-blanche comme diamètre (bords gauche/droite = anneau, sans ombre),
+       et le centre vertical = haut de l'anneau + rayon (ignore l'ombre sous le médaillon)."""
     g = ImageOps.grayscale(cell)
-    mask = g.point(lambda v: 255 if v < THRESH else 0)
-    return mask.getbbox()
+    bb = g.point(lambda v: 255 if v < THRESH else 0).getbbox()
+    if not bb:
+        return cell.width/2, cell.height/2, min(cell.size)/2*0.9
+    left, top, right, _ = bb
+    diam = right - left
+    cx = (left + right) / 2
+    cy = top + diam / 2
+    return cx, cy, diam/2 * PAD
 
 def main():
     if not SRC.exists():
@@ -32,12 +40,7 @@ def main():
     for r in range(ROWS):
         for c in range(COLS):
             cell = img.crop((round(c*cw), round(r*ch), round((c+1)*cw), round((r+1)*ch)))
-            bb = content_bbox(cell)
-            if bb:
-                cx, cy = (bb[0]+bb[2])/2, (bb[1]+bb[3])/2
-                half = max(bb[2]-bb[0], bb[3]-bb[1]) / 2 * PAD
-            else:  # repli : centre de la case
-                cx, cy, half = cell.width/2, cell.height/2, min(cell.size)/2*0.9
+            cx, cy, half = medallion(cell)
             x0, y0 = round(cx-half), round(cy-half)
             x1, y1 = round(cx+half), round(cy+half)
             # recadrage carré centré sur le médaillon (avec fond blanc si débordement)
