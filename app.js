@@ -634,23 +634,53 @@ function renderGameOver(){
   const order=standings();
   const champ=order[0];
   const tiedTop = order.filter(i=>scoreLabel(i)===scoreLabel(champ)).length>1;
+  const solo = S.config.nbPlayers===1;
+  const medals=["🥇","🥈","🥉"];
+
+  let hero;
+  if(solo){
+    hero=`<div class="go-crown">🏁</div>
+      <div class="go-champ-label">Partie terminée</div>
+      <div class="go-champ" style="color:${pColor(0)}">${esc(S.config.names[0])}</div>
+      <div class="go-solo-score">${scoreLabel(0)}</div>`;
+  }else{
+    const top=order.slice(0,3);
+    const visual=[1,0,2].filter(i=>i<top.length);   // gauche=2e, centre=1er, droite=3e
+    const cols=visual.map(i=>{
+      const pl=top[i];
+      return `<div class="podium-col rank${i+1}">
+        <div class="podium-avatar" style="--pc:${pColor(pl)}"><img src="${avatarSrc(pl)}" alt="" onerror="this.remove()"></div>
+        <div class="podium-name">${esc(S.config.names[pl])}</div>
+        <div class="podium-pedestal"><span class="medal">${medals[i]}</span><span class="podium-score">${scoreLabel(pl)}</span></div>
+      </div>`;
+    }).join("");
+    hero=`<div class="go-crown">🏆</div>
+      <div class="go-champ-label">${tiedTop?"Égalité en tête&nbsp;!":"Champion&nbsp;!"}</div>
+      <div class="go-champ" style="color:${pColor(champ)}">${esc(S.config.names[champ])}</div>
+      <div class="podium">${cols}</div>`;
+  }
+
   app.innerHTML=`<div class="table">
     <div class="gameover">
-      <div class="trophy">🏆</div>
-      <div>${tiedTop?"Égalité en tête":"Vainqueur"}</div>
-      <div class="champ">${esc(S.config.names[champ])}</div>
-      <div class="scoreboard" style="width:100%;max-width:420px">
+      <div class="go-confetti" id="confetti"></div>
+      ${hero}
+      ${solo?"":`<div class="scoreboard" style="width:100%;max-width:420px">
         <div class="sb-title">Classement final</div>
-        <div class="sb-list" style="max-height:42dvh">
-          ${order.map((i,rk)=>sbRowHTML(i,rk)).join("")}
-        </div>
-      </div>
+        <div class="sb-list" style="max-height:24dvh">${order.map((i,rk)=>sbRowHTML(i,rk)).join("")}</div>
+      </div>`}
       <div class="btn-row" style="width:100%;max-width:420px">
         <button class="btn secondary" id="again">Rejouer (mêmes réglages)</button>
         <button class="btn ghost" id="menu">Menu</button>
       </div>
     </div>
   </div>`;
+  // confettis
+  const conf=document.getElementById("confetti");
+  const cfCol=["#c0532b","#2e6d8a","#2f7d5c","#d0ad5e","#6b4a8a","#9b3b2f","#3f7d7d"];
+  for(let i=0;i<40;i++){ const s=document.createElement("span"); s.className="cf";
+    s.style.left=(Math.random()*100)+"%"; s.style.background=cfCol[i%cfCol.length];
+    s.style.animationDelay=(Math.random()*2.2)+"s"; s.style.animationDuration=(2.6+Math.random()*2)+"s";
+    s.style.width=(6+Math.random()*6)+"px"; conf.appendChild(s); }
   app.querySelector("#again").onclick=()=>{ startGame(); };
   app.querySelector("#menu").onclick=()=>{ renderSetup(); };
 }
